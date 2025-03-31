@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>image/uchat.ico</file>
+        <file>image/Uchat_login.png</file>
+        <file>style/logindialog.qss</file>
+        <file>style/mainwindow.qss</file>
+    </qresource>
+</RCC>

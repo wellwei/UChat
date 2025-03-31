@@ -1,0 +1,277 @@
+/* ==================== 全局与基础 ==================== */
+* {
+    font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+    outline: none;
+}
+
+QMainWindow {
+    background-color: palette(window); /* 主窗口背景跟随系统 */
+}
+
+QWidget#centralWidget {
+    background-color: transparent; /* 中央区域透明，由子控件控制 */
+}
+
+/* ==================== 左侧导航栏 ==================== */
+QWidget#sidebarWidget {
+    /* 亮色主题 */
+    background-color: #F0F0F0;
+    border-right: 1px solid #DCDCDC;
+    /* 暗色主题 (示例, 需要逻辑切换) */
+    /* background-color: #282828; */
+    /* border-right: 1px solid #383838; */
+}
+
+QLabel#avatarLabel {
+    border-radius: 20px; /* 圆形 */
+    background-color: #D0D0D0; /* 默认头像背景 */
+    /* border: 1px solid #B0B0B0; */ /* 可选边框 */
+}
+QLabel#avatarLabel:hover {
+    /* 可选：添加悬停效果，如轻微放大或边框 */
+    /* border: 1px solid #0078D4; */
+}
+
+/* 导航按钮通用样式 */
+QToolButton[buttonGroup="navigationGroup"] {
+    background-color: transparent;
+    border: none;
+    border-radius: 5px; /* 轻微圆角 */
+    padding: 5px;
+}
+
+/* 导航按钮悬停 */
+QToolButton[buttonGroup="navigationGroup"]:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* 亮色主题: 轻微灰色 */
+    /* 暗色主题: background-color: rgba(255, 255, 255, 0.08); */
+}
+
+/* 导航按钮选中 */
+QToolButton[buttonGroup="navigationGroup"]:checked {
+    background-color: rgba(0, 120, 212, 0.15); /* 亮色主题: 浅蓝色 */
+    /* 暗色主题: background-color: rgba(0, 120, 212, 0.3); */
+}
+/* 可选：为选中按钮的图标设置不同颜色 (需要 C++ 配合或 SVG 图标) */
+
+
+/* ==================== 内容区域 ==================== */
+/* 分割线 */
+QSplitter::handle {
+    background-color: #E0E0E0; /* 亮色 */
+    /* 暗色: #404040; */
+    width: 1px;
+    margin: 0px; /* 确保紧密 */
+}
+QSplitter::handle:horizontal {
+    height: 1px;
+    width: 1px;
+}
+QSplitter::handle:hover {
+    background-color: #0078D4; /* 悬停时高亮 */
+}
+
+/* 会话列表容器 */
+QWidget#conversationListWidgetContainer {
+    /* 亮色 */
+    background-color: #FAFAFA;
+    border-right: 1px solid #EAEAEA;
+    /* 暗色 */
+    /* background-color: #303030; */
+    /* border-right: 1px solid #404040; */
+}
+
+/* 搜索框 */
+QLineEdit#searchConversationsLineEdit,
+QLineEdit#searchContactsLineEdit,
+QLineEdit#searchGroupsLineEdit {
+    border: 1px solid #E0E0E0; /* 亮色 */
+    /* 暗色: border: 1px solid #484848; */
+    border-radius: 15px; /* 圆角 */
+    padding: 5px 10px 5px 25px; /* 左边距给图标留位 */
+    background-color: palette(base); /* 跟随系统输入框背景 */
+    color: palette(text);
+    margin: 8px;
+    /* 添加搜索图标 (需要 C++ 或 QSS content 属性，后者兼容性有限) */
+    background-image: url(:/icons/search.png); /* 替换 */
+    background-repeat: no-repeat;
+    background-position: left 8px center;
+    background-size: 14px 14px; /* 图标大小 */
+}
+QLineEdit:focus {
+    border: 1px solid #0078D4;
+}
+
+/* 列表和树视图 */
+QListWidget, QTreeView {
+    border: none;
+    background-color: transparent;
+    color: palette(text);
+}
+QListWidget::item, QTreeView::item {
+    padding: 10px 12px; /* 增加内边距 */
+    min-height: 40px; /* 确保足够高度显示头像和多行文本 */
+}
+QListWidget::item {
+    border-bottom: 1px solid #F0F0F0; /* 亮色 */
+    /* 暗色: border-bottom: 1px solid #383838; */
+}
+QTreeView::item {
+    /* TreeView item 边框通常不需要 */
+}
+
+QListWidget::item:selected, QTreeView::item:selected {
+    background-color: #DCEBFE; /* 亮色选中 */
+    color: #000000;
+    /* 暗色选中 */
+    /* background-color: #3A4A60; */
+    /* color: #FFFFFF; */
+    border-left: 3px solid #0078D4; /* 左侧选中标记 */
+    padding-left: 9px; /* 调整内边距以适应标记 */
+}
+QListWidget::item:hover:!selected, QTreeView::item:hover:!selected {
+    background-color: #EFF5FE; /* 亮色悬停 */
+    /* 暗色悬停 */
+    /* background-color: #38404D; */
+}
+
+/* TreeView 分支指示器 (展开/折叠箭头) */
+QTreeView::branch {
+    background: transparent;
+}
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(:/icons/branch-closed.png); /* 替换 */
+}
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings {
+    border-image: none;
+    image: url(:/icons/branch-open.png); /* 替换 */
+}
+
+/* 聊天面板 */
+QWidget#chatPanelWidgetContainer {
+    background-color: palette(window);
+}
+
+QWidget#chatTitleWidget {
+    border-bottom: 1px solid #EAEAEA; /* 亮色 */
+    /* 暗色: border-bottom: 1px solid #404040; */
+    background-color: palette(window);
+}
+QLabel#chatTargetNameLabel {
+    font-size: 12pt;
+    font-weight: 500;
+    color: palette(windowText);
+}
+
+QTextBrowser#messageDisplayBrowser {
+    border: none;
+    background-color: transparent;
+    padding: 15px;
+    color: palette(text);
+}
+
+QWidget#chatToolbarWidget {
+    border-top: 1px solid #EAEAEA; /* 亮色 */
+    /* 暗色: border-top: 1px solid #404040; */
+    background-color: palette(window);
+}
+QToolButton { /* 工具栏按钮 */
+    background-color: transparent;
+    border: none;
+    padding: 3px;
+    border-radius: 3px;
+}
+QToolButton:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* 亮色 */
+    /* 暗色: background-color: rgba(255, 255, 255, 0.08); */
+}
+QToolButton:pressed {
+    background-color: rgba(0, 0, 0, 0.1); /* 亮色 */
+    /* 暗色: background-color: rgba(255, 255, 255, 0.12); */
+}
+
+QTextEdit#messageInputEdit {
+    border: none;
+    background-color: transparent;
+    padding: 8px 12px;
+    font-size: 11pt;
+    color: palette(text);
+}
+
+QPushButton#sendButton {
+    background-color: #F0F0F0; /* 亮色默认 */
+    color: #333333;
+    border: 1px solid #D0D0D0;
+    /* 暗色默认 */
+    /* background-color: #4A4A4A; */
+    /* color: #E0E0E0; */
+    /* border: 1px solid #5A5A5A; */
+    border-radius: 4px;
+    padding: 5px 15px;
+    font-size: 10pt;
+}
+QPushButton#sendButton:hover {
+    background-color: #E0E0E0; /* 亮色 */
+    /* 暗色: #5A5A5A; */
+    border-color: #B0B0B0; /* 亮色 */
+    /* 暗色: #6A6A6A; */
+}
+QPushButton#sendButton:pressed {
+    background-color: #D0D0D0; /* 亮色 */
+    /* 暗色: #6A6A6A; */
+}
+/* 可选：当输入框有内容时，改变发送按钮样式 */
+/* QPushButton#sendButton[inputNotEmpty="true"] {
+    background-color: #0078D4;
+    color: white;
+    border: none;
+} */
+
+/* ==================== 滚动条 ==================== */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 8px;
+    margin: 0px 0px 0px 0px;
+}
+QScrollBar::handle:vertical {
+    background: #D0D0D0; /* 亮色 */
+    /* 暗色: #505050; */
+    min-height: 30px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #B0B0B0; /* 亮色 */
+    /* 暗色: #686868; */
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+QScrollBar:horizontal {
+    border: none;
+    background: transparent;
+    height: 8px;
+    margin: 0px 0px 0px 0px;
+}
+QScrollBar::handle:horizontal {
+    background: #D0D0D0; /* 亮色 */
+    /* 暗色: #505050; */
+    min-width: 30px;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: #B0B0B0; /* 亮色 */
+    /* 暗色: #686868; */
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
