@@ -3,16 +3,16 @@
     "host": "smtp.163.com",
     "port": 465,
     "secure": true,
-    "user": "y1827104243@163.com",
-    "pass": "RKiyRY7dEgKr6f9g"
+    "user": "",
+    "pass": ""
   },
   "mysql": {
-    "host": "152.32.254.156",
+    "host": "",
     "port": "38"
   },
   "redis": {
-    "host": "152.32.254.156",
+    "host": "",
     "port": "39",
-    "password": "sgooibrbhgegbusr"
+    "password": ""
   }
 }
