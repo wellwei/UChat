@@ -2,13 +2,8 @@
 #include "ui_logindialog.h"
 #include "mainwindow.hpp"
 #include "HttpMgr.h"
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QDebug>
+
 #include <QMessageBox>
-#include <QRegularExpression>
-#include <QTimer>
-#include <QFile>
 
 LoginDialog::LoginDialog(QWidget *parent)
     : QDialog(parent)
@@ -18,7 +13,7 @@ LoginDialog::LoginDialog(QWidget *parent)
     ui->setupUi(this);
 
     // 设置窗口样式表
-    QFile qss(":/style/stylesheet.qss");
+    QFile qss(":/style/logindialog.qss");
     if (qss.open(QFile::ReadOnly)) {
         QString style = QLatin1String(qss.readAll());
         this->setStyleSheet(style);
@@ -26,10 +21,10 @@ LoginDialog::LoginDialog(QWidget *parent)
     } else {
         qDebug() << "Failed to open :/style/stylesheet.qss";
     }
-    
+
     // 初始显示登录页面
     ui->stackedWidget->setCurrentIndex(0);
-    
+
     // 连接 HTTP 管理器信号
     connect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
     connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
@@ -54,7 +49,7 @@ LoginDialog::~LoginDialog()
 void LoginDialog::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
-    
+
     // 默认聚焦到用户名输入框
     if (ui->stackedWidget->currentIndex() == 0) {
         ui->username_edit->setFocus();
@@ -122,7 +117,6 @@ void LoginDialog::on_register_confirm_btn_clicked()
 // 注册页面 - 获取验证码按钮点击
 void LoginDialog::on_reg_captcha_btn_clicked()
 {
-    qDebug() << "Captcha button clicked";
     auto email = ui->reg_email_edit->text();
 
     static QRegularExpression regx("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
@@ -229,7 +223,7 @@ void LoginDialog::switchToLoginPage()
     ui->reg_email_edit->clear();
     ui->reg_captcha_edit->clear();
     ui->register_err_tip_label->clear();
-    
+
     // 切换到登录页面
     ui->stackedWidget->setCurrentIndex(0);
     ui->username_edit->setFocus();
@@ -245,7 +239,7 @@ void LoginDialog::switchToRegisterPage()
     ui->reg_email_edit->clear();
     ui->reg_captcha_edit->clear();
     ui->register_err_tip_label->clear();
-    
+
     // 切换到注册页面
     ui->stackedWidget->setCurrentIndex(1);
     ui->reg_username_edit->setFocus();
@@ -312,27 +306,27 @@ bool LoginDialog::validateRegisterInput()
     return true;
 }
 
-// 初始化 HTTP 处理器
+// 注册请求响应后的处理
 void LoginDialog::initHttpHandlers()
 {
     // 登录请求响应处理
     _handlers.insert(ReqId::ID_LOGIN,
         [this](const QJsonObject &jsonObj)
         {
-            int code = jsonObj.value("code").toInt();
-            
-            if (code == 0) {
+            int error_code = jsonObj.value("error").toInt();
+
+            if (error_code == 0) {
                 // 登录成功
                 QString username = ui->username_edit->text().trimmed();
-                
+
                 // 创建并显示主窗口
                 if (!mainWindow) {
                     mainWindow = new MainWindow();
                 }
-                
+
                 // 发送登录成功信号
                 emit loginSuccess(username);
-                
+
                 // 隐藏登录窗口并显示主窗口
                 this->hide();
                 mainWindow->show();
@@ -346,12 +340,12 @@ void LoginDialog::initHttpHandlers()
             }
         }
     );
-    
+
     // 验证码请求响应处理
     _handlers.insert(ReqId::ID_GET_CAPTCHA,
         [this](const QJsonObject &jsonObj) {
-            int code = jsonObj.value("code").toInt();
-            if (code == 0) {
+            int error_code = jsonObj.value("error").toInt();
+            if (error_code == 0) {
                 showRegisterTip(tr("验证码已发送到邮箱，请注意查收"), false);
             } else {
                 QString message = jsonObj.value("message").toString();
@@ -362,21 +356,21 @@ void LoginDialog::initHttpHandlers()
             }
         }
     );
-    
+
     // 注册请求响应处理
     _handlers.insert(ReqId::ID_REGISTER,
         [this](const QJsonObject &jsonObj) {
-            int code = jsonObj.value("code").toInt();
-            if (code == 0) {
+            int error_code = jsonObj.value("error").toInt();
+            if (error_code == 0) {
                 // 注册成功
                 QString username = ui->reg_username_edit->text().trimmed();
-                
+
                 // 显示注册成功提示
                 showRegisterTip(tr("注册成功！正在跳转到登录页面..."), false);
-                
+
                 // 发送注册成功信号
                 emit registerSuccess(username);
-                
+
                 // 延迟切换到登录页面
                 QTimer::singleShot(1500, this, &LoginDialog::switchToLoginPage);
             } else {

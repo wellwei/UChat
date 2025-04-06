@@ -2,10 +2,7 @@
 #include "logindialog.hpp"
 
 #include <QApplication>
-#include <QTranslator>
-#include <QFile>
 #include <QIcon>
-#include <QProxyStyle>
 #include <QStyleFactory>
 
 int main(int argc, char *argv[]) {
@@ -17,9 +14,14 @@ int main(int argc, char *argv[]) {
     // 设置应用图标
     QApplication::setWindowIcon(QIcon("://image/uchat.ico"));
 
+    // 从 qrc 中读取 config.ini 文件
+    QSettings settings(":/config/config.ini", QSettings::IniFormat);
+    GATE_SERVER_URL =
+            "http://" + settings.value("GateServer/host").toString() + ":" + settings.value("GateServer/port").toString();
+
     // 创建登录/注册窗口
     LoginDialog loginDialog;
-    
+
     // 显示登录窗口
     loginDialog.show();
 

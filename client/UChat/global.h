@@ -8,11 +8,25 @@
 #include <QWidget>
 #include <functional>
 #include <QStyle>
+#include <QNetworkAccessManager>
+#include <QString>
+#include <QUrl>
+#include <QObject>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <memory>
+#include <QNetworkReply>
+#include <QDebug>
+#include <QRegularExpression>
+#include <QTimer>
+#include <QFile>
+#include <QDir>
+#include <QSettings>
 
-extern std::function<void(QWidget * )> repolish;
+extern std::function<void(QWidget *)> repolish;
 
 // 服务器 URL
-const QString SERVER_URL = "http://localhost:8080";
+extern QString GATE_SERVER_URL;
 
 // HTTP 请求类型 ID
 enum ReqId {

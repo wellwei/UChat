@@ -5,8 +5,6 @@
 
 #include "HttpMgr.h"
 
-#include <QNetworkReply>
-
 HttpMgr::HttpMgr() {
     // 连接 http 请求和完成信号，信号槽机制保证队列消费
     connect(this, &HttpMgr::sig_http_finish, this, &HttpMgr::slot_http_finish);
@@ -65,7 +63,7 @@ void HttpMgr::login(const QString &username, const QString &password) {
     jsonObj["username"] = username;
     jsonObj["password"] = password;
     
-    QUrl url(SERVER_URL + "/api/login");
+    QUrl url(GATE_SERVER_URL + "/login");
     PostHttpReq(url, jsonObj, ReqId::ID_LOGIN, Modules::LOGINMOD);
 }
 
@@ -76,7 +74,7 @@ void HttpMgr::registerUser(const QString &username, const QString &password, con
     jsonObj["email"] = email;
     jsonObj["captcha"] = captcha;
     
-    QUrl url(SERVER_URL + "/api/register");
+    QUrl url(GATE_SERVER_URL + "/register");
     PostHttpReq(url, jsonObj, ReqId::ID_REGISTER, Modules::REGISTERMOD);
 }
 
@@ -84,7 +82,7 @@ void HttpMgr::getCaptcha(const QString &email) {
     QJsonObject jsonObj;
     jsonObj["email"] = email;
     
-    QUrl url(SERVER_URL + "/api/captcha");
+    QUrl url(GATE_SERVER_URL + "/get_captcha");
     PostHttpReq(url, jsonObj, ReqId::ID_GET_CAPTCHA, Modules::REGISTERMOD);
 }
 

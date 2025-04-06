@@ -5,14 +5,6 @@
 #ifndef UCHAT_HTTPMGR_H
 #define UCHAT_HTTPMGR_H
 
-#include <QNetworkAccessManager>
-#include <QString>
-#include <QUrl>
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <memory>
-
 #include "global.h"
 #include "Singleton.h"
 
