@@ -30,7 +30,7 @@ extern QString GATE_SERVER_URL;
 
 // HTTP 请求类型 ID
 enum ReqId {
-    ID_GET_CAPTCHA = 1001,
+    ID_GET_VERIFYCODE = 1001,
     ID_REGISTER = 1002,
     ID_LOGIN = 1003,
 };

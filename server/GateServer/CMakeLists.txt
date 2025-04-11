@@ -4,10 +4,17 @@ project(GateServer)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if (APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 13.6)
+endif ()
+
+cmake_policy(SET CMP0167 NEW)
+
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS beast asio filesystem)
-find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
+find_package(Boost CONFIG REQUIRED COMPONENTS beast asio filesystem)
+find_package(Protobuf CONFIG REQUIRED)
+find_package(grpc CONFIG REQUIRED)
+find_package(redis++ CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
@@ -49,11 +56,9 @@ target_link_libraries(proto_lib PUBLIC
 )
 target_include_directories(proto_lib PUBLIC
         $<BUILD_INTERFACE:${GENERATED_DIR}>
-        $<INSTALL_INTERFACE:include>
 )
 
-add_executable(GateServer ${SOURCES}
-        src/main.cpp
+add_library(GateServerLib SHARED ${SOURCES}
         src/CServer.cpp
         src/CServer.h
         src/HttpConnection.cpp
@@ -61,20 +66,50 @@ add_executable(GateServer ${SOURCES}
         src/Singleton.h
         src/LogicSystem.cpp
         src/LogicSystem.h
-        src/utility.h
+        src/util.h
         src/global.h
-        src/CaptchaGrpcClient.cpp
-        src/CaptchaGrpcClient.h
+        src/VerifyGrpcClient.cpp
+        src/VerifyGrpcClient.h
         src/SectionInfo.h
         src/ConfigMgr.cpp
         src/ConfigMgr.h
         src/global.cpp
-        src/IOServicePool.cpp
-        src/IOServicePool.h)
+        src/ServicePool.cpp
+        src/ServicePool.h
+        src/GrpcStubPool.cpp
+        src/GrpcStubPool.h
+        src/RedisConnPool.cpp
+        src/RedisConnPool.h
+        src/RedisMgr.cpp
+        src/RedisMgr.h
+        src/RequestHandlers.h
+        src/MysqlConnPool.cpp
+        src/MysqlConnPool.h
+        src/MysqlDao.cpp
+        src/MysqlDao.h
+        src/MysqlMgr.cpp
+        src/MysqlMgr.h)
 
-target_link_libraries(GateServer PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(GateServer PRIVATE Boost::asio Boost::beast Boost::filesystem)
-target_link_libraries(GateServer PRIVATE proto_lib)
+target_include_directories(GateServerLib PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+)
+
+# 添加 MySQL Connector/C++
+set(MYSQL_CPPCON /usr/local/mysql/connector-c++-8.3.0)
+target_include_directories(GateServerLib PUBLIC ${MYSQL_CPPCON}/include)
+target_link_directories(GateServerLib PUBLIC ${MYSQL_CPPCON}/lib64)
+
+target_link_libraries(GateServerLib PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(GateServerLib PUBLIC Boost::asio Boost::beast Boost::filesystem)
+target_link_libraries(GateServerLib PUBLIC proto_lib)
+target_link_libraries(GateServerLib PUBLIC redis++::redis++_static)
+target_link_libraries(GateServerLib PUBLIC mysqlcppconn)
+
+add_executable(GateServer main.cpp)
+target_link_libraries(GateServer PRIVATE GateServerLib)
+
+add_subdirectory(test)
+enable_testing()
 
 # 拷贝配置文件到构建目录
 configure_file(

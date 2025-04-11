@@ -1,10 +1,11 @@
-let code_prefix = 'code_';
+let code_prefix = 'verify_code_';
 
 const Errors = {
     Success: 0,
     RedisError: 1,
-    Exception: 2,
-    InvalidArgument: 3,
+    EmailError: 2,
+    Exception: 3,
+    InvalidArgument: 4,
 }
 
 module.exports = { code_prefix, Errors };

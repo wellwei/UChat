@@ -17,16 +17,19 @@
 #include <utility>
 #include <cassert>
 #include <grpcpp/grpcpp.h>
-
-#include "message.grpc.pb.h"
-#include "message.pb.h"
-#include "ConfigMgr.h"
-#include "Singleton.h"
+#include <queue>
+#include <sw/redis++/redis++.h>
 
 enum ErrorCode {
     SUCCESS = 0,
     JSON_PARSE_ERROR = 1001,
     RPC_ERROR = 1002,
+    INVALID_PARAMETER = 1003,
+    TOO_MANY_REQUESTS = 1004,
+    VERIFY_CODE_ERROR = 1005,
+    EMAIL_EXISTS = 1006,
+    USERNAME_EXISTS = 1007,
+    MYSQL_ERROR = 1008,
 };
 
 enum RequestType {

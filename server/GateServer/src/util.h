@@ -2,16 +2,19 @@
 // Created by wellwei on 2025/4/1.
 //
 
-#ifndef GATESERVER_UTILITY_H
-#define GATESERVER_UTILITY_H
+#ifndef GATESERVER_UTIL_H
+#define GATESERVER_UTIL_H
 
 #include "global.h"
+#include <regex>
+#include <random>
+#include <openssl/sha.h>
 
-unsigned char decToHex(unsigned char dec) {
+inline unsigned char decToHex(unsigned char dec) {
     return dec > 9 ? dec + 55 : dec + 48; // 10-15 转换为 A-F，0-9 转换为 0-9
 }
 
-unsigned char hexToDec(unsigned char hex) {
+inline unsigned char hexToDec(unsigned char hex) {
     if (hex >= '0' && hex <= '9') {
         return hex - '0';
     } else if (hex >= 'A' && hex <= 'F') {
@@ -28,7 +31,7 @@ unsigned char hexToDec(unsigned char hex) {
  * @param str 待编码的字符串
  * @return 编码后的字符串
  */
-std::string urlEncode(const std::string &str) {
+inline std::string urlEncode(const std::string &str) {
     std::string encoded;
     for (char c: str) {
         // 如果字符是字母、数字或某些特殊字符，则直接添加到结果中
@@ -52,7 +55,7 @@ std::string urlEncode(const std::string &str) {
  * @param str 待解码的字符串
  * @return 解码后的字符串
  */
-std::string urlDecode(const std::string &str) {
+inline std::string urlDecode(const std::string &str) {
     std::string decoded;
     size_t len = str.length();
     for (size_t i = 0; i < len; ++i) {
@@ -77,4 +80,37 @@ std::string urlDecode(const std::string &str) {
     return decoded;
 }
 
-#endif //GATESERVER_UTILITY_H
+// validate email format
+inline bool isValidEmail(const std::string &email) {
+    const std::regex pattern(R"((\w+)(\.\w+)*@(\w+)(\.\w+)+)");
+    return std::regex_match(email, pattern);
+}
+
+// validate username format
+inline bool isValidUsername(const std::string &username) {
+    // 6-16 位 大小写字母、数字、下划线，不能以数字开头
+    const std::regex pattern(R"((?!^\d)[a-zA-Z0-9_]{6,16})");
+    return std::regex_match(username, pattern);
+}
+
+// validate password format
+inline bool isValidPassword(const std::string &password) {
+    // 8-20 位 字母、数字或特殊字符（如 !@#$%^&*()_+-.）
+    const std::regex pattern(R"((?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d!@#$%^&*()_+\-=]{8,20})");
+    return std::regex_match(password, pattern);
+}
+
+// 对密码进行 SHA256 哈希
+inline std::string hashPassword(const std::string &password) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char *>(password.c_str()), password.length(), hash);
+    std::string hashedPassword;
+    // 将每个字节转换为十六进制字符串
+    for (unsigned char i: hash) {
+        hashedPassword += decToHex(i >> 4);
+        hashedPassword += decToHex(i & 0x0F);
+    }
+    return hashedPassword;
+}
+
+#endif //GATESERVER_UTIL_H

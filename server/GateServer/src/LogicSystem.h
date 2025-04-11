@@ -10,6 +10,9 @@
 
 class HttpConnection;
 
+/**
+ * HTTP 请求路由类
+ */
 class LogicSystem : public Singleton<LogicSystem>,
                     public std::enable_shared_from_this<LogicSystem> {
     friend class Singleton<LogicSystem>;
@@ -23,7 +26,7 @@ public:
 
     bool handlePostRequest(const std::string &url, std::shared_ptr<HttpConnection> connection);
 
-    void registerHandler(RequestType type, const std::string &url, HttpRequestHandler handler);
+    void registerHandler(RequestType type, const std::string &url, const HttpRequestHandler& handler);
 
 private:
     using HandlerMap = std::unordered_map<std::string, HttpRequestHandler>;

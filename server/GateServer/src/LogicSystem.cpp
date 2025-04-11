@@ -5,48 +5,18 @@
 #include "LogicSystem.h"
 #include "global.h"
 #include "HttpConnection.h"
-#include "CaptchaGrpcClient.h"
+#include "RequestHandlers.h"
 
 LogicSystem::LogicSystem() {
-    registerHandler(RequestType::GET, "/get_test", [](const std::shared_ptr<HttpConnection> &connection) {
-        boost::beast::ostream(connection->res_.body()) << "GET request received!";
+    registerHandler(RequestType::GET, "/get_test", RequestHandlerFuncs::handle_get_test);
 
-        int i = 0;
-        for (const auto &param: connection->get_params_) {
-            beast::ostream(connection->res_.body()) << "\n" << i++ << ": " << param.first << " = " << param.second;
-        }
-        return true;
-    });
+    registerHandler(RequestType::POST, "/get_verifycode", RequestHandlerFuncs::handle_post_getverifycode);
 
-    registerHandler(RequestType::POST, "/get_captcha", [](const std::shared_ptr<HttpConnection> &connection) {
-        std::string body = boost::beast::buffers_to_string(connection->req_.body().data());
-
-        nlohmann::json json_data;
-        nlohmann::json response;
-
-        connection->res_.set(http::field::content_type, "application/json");
-        try {
-            json_data = nlohmann::json::parse(body);
-        }
-        catch (const nlohmann::json::parse_error &e) {
-            std::cerr << "JSON parse error: " << e.what() << std::endl;
-            response["error"] = ErrorCode::JSON_PARSE_ERROR;
-            boost::beast::ostream(connection->res_.body()) << response.dump();
-            return true;
-        }
-
-        std::string email = json_data["email"].get<std::string>();
-
-        message::CaptchaResponse captcha_response = CaptchaGrpcClient::getInstance()->getCaptcha(email);
-        json_data["captcha"] = captcha_response.captcha();
-        json_data["error"] = captcha_response.code();
-        json_data["email"] = email;
-        boost::beast::ostream(connection->res_.body()) << json_data.dump();
-        return true;
-    });
+    registerHandler(RequestType::POST, "/register", RequestHandlerFuncs::handle_post_register);
 }
 
-void LogicSystem::registerHandler(RequestType type, const std::string &url, LogicSystem::HttpRequestHandler handler) {
+void
+LogicSystem::registerHandler(RequestType type, const std::string &url, const LogicSystem::HttpRequestHandler &handler) {
     switch (type) {
         case GET:
             get_handlers_[url] = handler;

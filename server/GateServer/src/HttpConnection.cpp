@@ -5,15 +5,23 @@
 
 #include "HttpConnection.h"
 #include "LogicSystem.h"
-#include "utility.h"
+#include "util.h"
 
 
 HttpConnection::HttpConnection(tcp::socket socket)
         : socket_(std::move(socket)) {
 }
 
+HttpConnection::HttpConnection(asio::io_context &ioc)
+        : socket_(ioc) {
+}
+
 void HttpConnection::start() {
     doRead();
+}
+
+tcp::socket& HttpConnection::getSocket() {
+    return socket_;
 }
 
 // 接收请求

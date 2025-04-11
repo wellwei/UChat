@@ -1,0 +1,21 @@
+{
+  "email": {
+    "host": "smtp.163.com",
+    "port": 465,
+    "secure": true,
+    "user": "y1827104243@163.com",
+    "pass": "RKiyRY7dEgKr6f9g"
+  },
+  "mysql": {
+    "host": "3486vskn5236.vicp.fun",
+    "port": "18057",
+    "user": "root",
+    "password": "dPGNaHRTj4b2crnt",
+    "database": "uchat"
+  },
+  "redis": {
+    "host": "frp-fun.com",
+    "port": "49737",
+    "password": "4kFxJ8Wk62keDixJ"
+  }
+}

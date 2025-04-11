@@ -39,6 +39,7 @@ ConfigMgr::ConfigMgr() {
     }
 
     // 打印配置文件内容
+    /*
     for (const auto &section: config_map_) {
         const std::string &section_name = section.first;
         const SectionInfo &section_info = section.second;
@@ -47,4 +48,5 @@ ConfigMgr::ConfigMgr() {
             std::cout << key_value.first << " = " << key_value.second << std::endl;
         }
     }
+     */
 }

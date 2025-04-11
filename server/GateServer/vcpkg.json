@@ -1,0 +1,15 @@
+{
+  "name": "uchat",
+  "version": "0.0.0",
+  "dependencies": [
+    "boost",
+    "nlohmann-json",
+    "grpc",
+    "protobuf",
+    "redis-plus-plus",
+    "openssl"
+  ],
+  "builtin-baseline": "2ad004460f5db4d3b66f62f5799ff66c265c4b5d",
+  "overrides": [
+  ]
+}

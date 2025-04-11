@@ -6,10 +6,7 @@
 #include <QMessageBox>
 
 LoginDialog::LoginDialog(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::LoginDialog)
-    , mainWindow(nullptr)
-{
+        : QDialog(parent), ui(new Ui::LoginDialog), mainWindow(nullptr) {
     ui->setupUi(this);
 
     // 设置窗口样式表
@@ -35,8 +32,7 @@ LoginDialog::LoginDialog(QWidget *parent)
     qDebug() << "LoginDialog constructed";
 }
 
-LoginDialog::~LoginDialog()
-{
+LoginDialog::~LoginDialog() {
     qDebug() << "LoginDialog destroyed";
     disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
     disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
@@ -46,8 +42,7 @@ LoginDialog::~LoginDialog()
     }
 }
 
-void LoginDialog::showEvent(QShowEvent *event)
-{
+void LoginDialog::showEvent(QShowEvent *event) {
     QDialog::showEvent(event);
 
     // 默认聚焦到用户名输入框
@@ -59,8 +54,7 @@ void LoginDialog::showEvent(QShowEvent *event)
 }
 
 // 登录页面 - 登录按钮点击
-void LoginDialog::on_login_btn_clicked()
-{
+void LoginDialog::on_login_btn_clicked() {
     qDebug() << "Login button clicked";
     QString username = ui->username_edit->text().trimmed();
     QString password = ui->password_edit->text();
@@ -86,16 +80,12 @@ void LoginDialog::on_login_btn_clicked()
 }
 
 // 登录页面 - 去注册按钮点击
-void LoginDialog::on_to_register_btn_clicked()
-{
-    qDebug() << "Switch to register page clicked";
+void LoginDialog::on_to_register_btn_clicked() {
     switchToRegisterPage();
 }
 
 // 注册页面 - 确认注册按钮点击
-void LoginDialog::on_register_confirm_btn_clicked()
-{
-    qDebug() << "Register confirm button clicked";
+void LoginDialog::on_register_confirm_btn_clicked() {
     // 验证输入
     if (!validateRegisterInput()) {
         return;
@@ -115,8 +105,7 @@ void LoginDialog::on_register_confirm_btn_clicked()
 }
 
 // 注册页面 - 获取验证码按钮点击
-void LoginDialog::on_reg_captcha_btn_clicked()
-{
+void LoginDialog::on_reg_captcha_btn_clicked() {
     auto email = ui->reg_email_edit->text();
 
     static QRegularExpression regx("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
@@ -131,15 +120,12 @@ void LoginDialog::on_reg_captcha_btn_clicked()
 }
 
 // 注册页面 - 返回登录按钮点击
-void LoginDialog::on_to_login_btn_clicked()
-{
-    qDebug() << "Switch to login page clicked";
+void LoginDialog::on_to_login_btn_clicked() {
     switchToLoginPage();
 }
 
 // 登录请求处理
-void LoginDialog::slot_login_finish(ReqId id, const QString &res, ErrorCodes err)
-{
+void LoginDialog::slot_login_finish(ReqId id, const QString &res, ErrorCodes err) {
     if (err != ErrorCodes::SUCCESS) {
         showLoginTip(tr("网络错误"));
         return;
@@ -164,8 +150,7 @@ void LoginDialog::slot_login_finish(ReqId id, const QString &res, ErrorCodes err
 }
 
 // 注册请求处理
-void LoginDialog::slot_reg_mod_finish(ReqId id, const QString &res, ErrorCodes err)
-{
+void LoginDialog::slot_reg_mod_finish(ReqId id, const QString &res, ErrorCodes err) {
     if (err != ErrorCodes::SUCCESS) {
         showRegisterTip(tr("网络错误"));
         return;
@@ -190,8 +175,7 @@ void LoginDialog::slot_reg_mod_finish(ReqId id, const QString &res, ErrorCodes e
 }
 
 // 显示登录页面的提示信息
-void LoginDialog::showLoginTip(const QString &tip, bool err)
-{
+void LoginDialog::showLoginTip(const QString &tip, bool err) {
     ui->login_err_tip_label->setText(tip);
     if (err) {
         ui->login_err_tip_label->setProperty("state", "error");
@@ -202,8 +186,7 @@ void LoginDialog::showLoginTip(const QString &tip, bool err)
 }
 
 // 显示注册页面的提示信息
-void LoginDialog::showRegisterTip(const QString &tip, bool err)
-{
+void LoginDialog::showRegisterTip(const QString &tip, bool err) {
     ui->register_err_tip_label->setText(tip);
     if (err) {
         ui->register_err_tip_label->setProperty("state", "error");
@@ -214,8 +197,7 @@ void LoginDialog::showRegisterTip(const QString &tip, bool err)
 }
 
 // 切换到登录页面
-void LoginDialog::switchToLoginPage()
-{
+void LoginDialog::switchToLoginPage() {
     // 清空注册页面的输入
     ui->reg_username_edit->clear();
     ui->reg_password_edit->clear();
@@ -230,8 +212,7 @@ void LoginDialog::switchToLoginPage()
 }
 
 // 切换到注册页面
-void LoginDialog::switchToRegisterPage()
-{
+void LoginDialog::switchToRegisterPage() {
     // 清空注册页面的输入
     ui->reg_username_edit->clear();
     ui->reg_password_edit->clear();
@@ -246,8 +227,7 @@ void LoginDialog::switchToRegisterPage()
 }
 
 // 验证注册输入
-bool LoginDialog::validateRegisterInput()
-{
+bool LoginDialog::validateRegisterInput() {
     QString username = ui->reg_username_edit->text().trimmed();
     QString password = ui->reg_password_edit->text();
     QString confirmPassword = ui->reg_confirm_password_edit->text();
@@ -261,8 +241,8 @@ bool LoginDialog::validateRegisterInput()
         return false;
     }
 
-    if (username.length() < 3 || username.length() > 20) {
-        showRegisterTip(tr("用户名长度应为 3-20 个字符"));
+    if (username.length() < 6 || username.length() > 16) {
+        showRegisterTip(tr("用户名长度应为 6-16 个字符"));
         ui->reg_username_edit->setFocus();
         return false;
     }
@@ -274,8 +254,17 @@ bool LoginDialog::validateRegisterInput()
         return false;
     }
 
-    if (password.length() < 6) {
-        showRegisterTip(tr("密码长度不能少于 6 个字符"));
+    if (password.length() < 8 || password.length() > 20) {
+        showRegisterTip(tr("密码长度应为 8-20 个字符"));
+        ui->reg_password_edit->setFocus();
+        return false;
+    }
+
+    // 8-20，包含字母、数字和特殊字符（如  !@#$%^&*()_+-)
+    static QRegularExpression passwd_regx(R"((?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d!@#$%^&*()_+\-=]{8,20})");
+    if (!passwd_regx.match(password).hasMatch()) {
+        showRegisterTip(
+                tr("密码格式不正确"));
         ui->reg_password_edit->setFocus();
         return false;
     }
@@ -288,8 +277,8 @@ bool LoginDialog::validateRegisterInput()
     }
 
     // 验证邮箱
-    static QRegularExpression regx("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
-    bool match = regx.match(email).hasMatch();
+    static QRegularExpression email_regx("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
+    bool match = email_regx.match(email).hasMatch();
     if (!match) {
         showRegisterTip(tr("请输入有效的邮箱地址"));
         ui->reg_email_edit->setFocus();
@@ -307,80 +296,78 @@ bool LoginDialog::validateRegisterInput()
 }
 
 // 注册请求响应后的处理
-void LoginDialog::initHttpHandlers()
-{
+void LoginDialog::initHttpHandlers() {
     // 登录请求响应处理
     _handlers.insert(ReqId::ID_LOGIN,
-        [this](const QJsonObject &jsonObj)
-        {
-            int error_code = jsonObj.value("error").toInt();
+                     [this](const QJsonObject &jsonObj) {
+                         int error_code = jsonObj.value("error").toInt();
 
-            if (error_code == 0) {
-                // 登录成功
-                QString username = ui->username_edit->text().trimmed();
+                         if (error_code == 0) {
+                             // 登录成功
+                             QString username = ui->username_edit->text().trimmed();
 
-                // 创建并显示主窗口
-                if (!mainWindow) {
-                    mainWindow = new MainWindow();
-                }
+                             // 创建并显示主窗口
+                             if (!mainWindow) {
+                                 mainWindow = new MainWindow();
+                             }
 
-                // 发送登录成功信号
-                emit loginSuccess(username);
+                             // 发送登录成功信号
+                             emit loginSuccess(username);
 
-                // 隐藏登录窗口并显示主窗口
-                this->hide();
-                mainWindow->show();
-            } else {
-                // 登录失败
-                QString message = jsonObj.value("message").toString();
-                if (message.isEmpty()) {
-                    message = tr("用户名或密码错误");
-                }
-                showLoginTip(message);
-            }
-        }
+                             // 隐藏登录窗口并显示主窗口
+                             this->hide();
+                             mainWindow->show();
+                         } else {
+                             // 登录失败
+                             QString message = jsonObj.value("message").toString();
+                             if (message.isEmpty()) {
+                                 message = tr("用户名或密码错误");
+                             }
+                             showLoginTip(message);
+                         }
+                     }
     );
 
     // 验证码请求响应处理
-    _handlers.insert(ReqId::ID_GET_CAPTCHA,
-        [this](const QJsonObject &jsonObj) {
-            int error_code = jsonObj.value("error").toInt();
-            if (error_code == 0) {
-                showRegisterTip(tr("验证码已发送到邮箱，请注意查收"), false);
-            } else {
-                QString message = jsonObj.value("message").toString();
-                if (message.isEmpty()) {
-                    message = tr("验证码发送失败");
-                }
-                showRegisterTip(message);
-            }
-        }
+    _handlers.insert(ReqId::ID_GET_VERIFYCODE,
+                     [this](const QJsonObject &jsonObj) {
+                         int error_code = jsonObj.value("error").toInt();
+                         if (error_code == 0) {
+                             showRegisterTip(tr("验证码已发送到邮箱，请注意查收"), false);
+                         } else {
+                             QString message = jsonObj.value("message").toString();
+                             if (message.isEmpty()) {
+                                 message = tr("验证码发送失败");
+                             }
+                             showRegisterTip(message);
+                         }
+                     }
     );
 
     // 注册请求响应处理
     _handlers.insert(ReqId::ID_REGISTER,
-        [this](const QJsonObject &jsonObj) {
-            int error_code = jsonObj.value("error").toInt();
-            if (error_code == 0) {
-                // 注册成功
-                QString username = ui->reg_username_edit->text().trimmed();
+                     [this](const QJsonObject &jsonObj) {
+                         int error_code = jsonObj.value("error").toInt();
+                         if (error_code == 0) {
+                             // 注册成功
+                             QString username = ui->reg_username_edit->text().trimmed();
 
-                // 显示注册成功提示
-                showRegisterTip(tr("注册成功！正在跳转到登录页面..."), false);
+                             // 显示注册成功提示
+                             showRegisterTip(tr("注册成功！正在跳转到登录页面..."), false);
 
-                // 发送注册成功信号
-                emit registerSuccess(username);
+                             // 发送注册成功信号
+                             emit registerSuccess(username);
 
-                // 延迟切换到登录页面
-                QTimer::singleShot(1500, this, &LoginDialog::switchToLoginPage);
-            } else {
-                // 注册失败
-                QString message = jsonObj.value("message").toString();
-                if (message.isEmpty()) {
-                    message = tr("注册失败，请稍后重试");
-                }
-                showRegisterTip(message);
-            }
-        }
+                             // 延迟切换到登录页面
+                             QTimer::singleShot(1500, this, &LoginDialog::switchToLoginPage);
+                         } else {
+                             // 注册失败
+                             QString message = jsonObj.value("message").toString();
+                             if (message.isEmpty()) {
+                                 message = tr("注册失败，请稍后重试");
+                             }
+                             showRegisterTip(message);
+                         }
+                     }
     );
 }

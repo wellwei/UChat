@@ -20,6 +20,9 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
         NETWORK
 )
 
+# qt feature "timezone"
+set(QT_FEATURE_TIMEZONE TRUE)
+
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp

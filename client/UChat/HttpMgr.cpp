@@ -67,12 +67,12 @@ void HttpMgr::login(const QString &username, const QString &password) {
     PostHttpReq(url, jsonObj, ReqId::ID_LOGIN, Modules::LOGINMOD);
 }
 
-void HttpMgr::registerUser(const QString &username, const QString &password, const QString &email, const QString &captcha) {
+void HttpMgr::registerUser(const QString &username, const QString &password, const QString &email, const QString &verify_code) {
     QJsonObject jsonObj;
     jsonObj["username"] = username;
     jsonObj["password"] = password;
     jsonObj["email"] = email;
-    jsonObj["captcha"] = captcha;
+    jsonObj["verify_code"] = verify_code;
     
     QUrl url(GATE_SERVER_URL + "/register");
     PostHttpReq(url, jsonObj, ReqId::ID_REGISTER, Modules::REGISTERMOD);
@@ -82,8 +82,8 @@ void HttpMgr::getCaptcha(const QString &email) {
     QJsonObject jsonObj;
     jsonObj["email"] = email;
     
-    QUrl url(GATE_SERVER_URL + "/get_captcha");
-    PostHttpReq(url, jsonObj, ReqId::ID_GET_CAPTCHA, Modules::REGISTERMOD);
+    QUrl url(GATE_SERVER_URL + "/get_verifycode");
+    PostHttpReq(url, jsonObj, ReqId::ID_GET_VERIFYCODE, Modules::REGISTERMOD);
 }
 
 void HttpMgr::slot_http_finish(ReqId id, const QString& res, ErrorCodes err, Modules module) {

@@ -29,7 +29,6 @@ async function sendEmail(mailOptions) {
                 console.error('Error sending email:', error);
                 reject(error);
             } else {
-                console.log('Email sent:', info.response);
                 resolve(info.response);
             }
         });

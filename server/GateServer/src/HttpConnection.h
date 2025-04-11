@@ -18,9 +18,19 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
 public:
     explicit HttpConnection(tcp::socket socket);
 
+    explicit HttpConnection(asio::io_context &ioc);
+
     ~HttpConnection() = default;
 
     void start();
+
+    tcp::socket &getSocket();
+
+    auto &getRequest() { return req_; }
+
+    auto &getResponse() { return res_; }
+
+    auto getParams() { return get_params_; }
 
 private:
     void onTimeout(beast::error_code ec);

@@ -370,7 +370,7 @@
           </size>
          </property>
          <property name="placeholderText">
-          <string>用户名（3-20个字符）</string>
+          <string>用户名（6-16个字符）</string>
          </property>
         </widget>
        </item>
@@ -383,7 +383,7 @@
           </size>
          </property>
          <property name="placeholderText">
-          <string>邮箱地址（用于找回密码）</string>
+          <string>邮箱地址</string>
          </property>
         </widget>
        </item>
@@ -399,7 +399,7 @@
           <enum>QLineEdit::EchoMode::Password</enum>
          </property>
          <property name="placeholderText">
-          <string>设置密码（至少6位）</string>
+          <string>设置密码（8-20个字母、数字或特殊字符）</string>
          </property>
         </widget>
        </item>
