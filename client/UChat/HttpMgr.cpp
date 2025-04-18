@@ -42,7 +42,7 @@ void HttpMgr::PostHttpReq(const QUrl &url, const QJsonObject &jsonObj, ReqId req
         if (reply->error() != QNetworkReply::NoError) {
             qDebug() << "Error: " << reply->errorString();
 
-            emit self->sig_http_finish(reqId, "", ErrorCodes::ERR_NETWORK, module);
+            emit self->sig_http_finish(reqId, "", ErrorCodes::NETWORK_ERROR, module);
 
             reply->deleteLater();
             return;
@@ -62,34 +62,55 @@ void HttpMgr::login(const QString &username, const QString &password) {
     QJsonObject jsonObj;
     jsonObj["username"] = username;
     jsonObj["password"] = password;
-    
+
     QUrl url(GATE_SERVER_URL + "/login");
     PostHttpReq(url, jsonObj, ReqId::ID_LOGIN, Modules::LOGINMOD);
 }
 
-void HttpMgr::registerUser(const QString &username, const QString &password, const QString &email, const QString &verify_code) {
+void HttpMgr::registerUser(const QString &username, const QString &password, const QString &email,
+                           const QString &verify_code) {
     QJsonObject jsonObj;
     jsonObj["username"] = username;
     jsonObj["password"] = password;
     jsonObj["email"] = email;
     jsonObj["verify_code"] = verify_code;
-    
+
     QUrl url(GATE_SERVER_URL + "/register");
     PostHttpReq(url, jsonObj, ReqId::ID_REGISTER, Modules::REGISTERMOD);
 }
 
-void HttpMgr::getCaptcha(const QString &email) {
+void HttpMgr::getVerify(const QString &email) {
     QJsonObject jsonObj;
     jsonObj["email"] = email;
-    
+
     QUrl url(GATE_SERVER_URL + "/get_verifycode");
     PostHttpReq(url, jsonObj, ReqId::ID_GET_VERIFYCODE, Modules::REGISTERMOD);
 }
 
-void HttpMgr::slot_http_finish(ReqId id, const QString& res, ErrorCodes err, Modules module) {
+void HttpMgr::resetPassword(const QString &email, const QString &captcha, const QString &newPassword) {
+    QJsonObject jsonObj;
+    jsonObj["email"] = email;
+    jsonObj["verify_code"] = captcha;
+    jsonObj["new_password"] = newPassword;
+
+    QUrl url(GATE_SERVER_URL + "/reset_password");
+    PostHttpReq(url, jsonObj, ReqId::ID_RESET_PASSWORD, Modules::RESETMOD);
+}
+
+void HttpMgr::getPasswordResetCode(const QString &email) {
+    QJsonObject jsonObj;
+    jsonObj["email"] = email;
+
+    QUrl url(GATE_SERVER_URL + "/get_verifycode");
+    PostHttpReq(url, jsonObj, ReqId::ID_FORGET_PWD_REQUEST_CODE, Modules::RESETMOD);
+}
+
+void HttpMgr::slot_http_finish(ReqId id, const QString &res, ErrorCodes err, Modules module) {
     if (module == Modules::REGISTERMOD) {
         emit sig_reg_mod_finish(id, res, err);
     } else if (module == Modules::LOGINMOD) {
         emit sig_login_finish(id, res, err);
+    } else if (module == Modules::RESETMOD) {
+        emit sig_reset_mod_finish(id, res, err);
     }
 }

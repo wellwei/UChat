@@ -5,5 +5,7 @@
         <file>style/logindialog.qss</file>
         <file>style/mainwindow.qss</file>
         <file>config/config.ini</file>
+        <file>image/invisible.svg</file>
+        <file>image/visible.svg</file>
     </qresource>
 </RCC>

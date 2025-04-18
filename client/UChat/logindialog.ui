@@ -49,13 +49,19 @@
    </property>
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="styleSheet">
       <string notr="true">QStackedWidget, QWidget#login_page, QWidget#register_page {
        background-color: transparent; /* 确保页面背景透明 */
        }</string>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="login_page">
       <layout class="QVBoxLayout" name="login_verticalLayout">
@@ -129,7 +135,7 @@
        <item>
         <layout class="QHBoxLayout" name="passwd_input">
          <property name="spacing">
-          <number>10</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLineEdit" name="password_edit">
@@ -151,6 +157,9 @@
        </item>
        <item>
         <layout class="QHBoxLayout" name="forget_layout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
           <spacer name="horizontalSpacer_forget_left">
            <property name="orientation">
@@ -165,18 +174,15 @@
           </spacer>
          </item>
          <item>
-          <widget class="QLabel" name="forget_passwd_label">
+          <widget class="QPushButton" name="forget_passwd_btn">
            <property name="cursor">
             <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">/* QSS 中定义链接样式 */</string>
            </property>
            <property name="text">
             <string>忘记密码?</string>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+           <property name="flat">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -388,36 +394,68 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="reg_password_edit">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>35</height>
-          </size>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="spacing">
+          <number>0</number>
          </property>
-         <property name="echoMode">
-          <enum>QLineEdit::EchoMode::Password</enum>
+         <property name="leftMargin">
+          <number>0</number>
          </property>
-         <property name="placeholderText">
-          <string>设置密码（8-20个字母、数字或特殊字符）</string>
+         <property name="topMargin">
+          <number>0</number>
          </property>
-        </widget>
+         <item>
+          <widget class="QLineEdit" name="reg_password_edit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="echoMode">
+            <enum>QLineEdit::EchoMode::Password</enum>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+           <property name="placeholderText">
+            <string>设置密码（8-20个字母、数字或特殊字符）</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
-        <widget class="QLineEdit" name="reg_confirm_password_edit">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>35</height>
-          </size>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="spacing">
+          <number>0</number>
          </property>
-         <property name="echoMode">
-          <enum>QLineEdit::EchoMode::Password</enum>
+         <property name="topMargin">
+          <number>0</number>
          </property>
-         <property name="placeholderText">
-          <string>确认密码</string>
-         </property>
-        </widget>
+         <item>
+          <widget class="QLineEdit" name="reg_confirm_password_edit">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="echoMode">
+            <enum>QLineEdit::EchoMode::Password</enum>
+           </property>
+           <property name="placeholderText">
+            <string>确认密码</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="reg_captcha_input">
@@ -432,13 +470,16 @@
              <height>35</height>
             </size>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
            <property name="placeholderText">
             <string>邮箱验证码</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="reg_captcha_btn">
+          <widget class="TimerButton" name="reg_captcha_btn">
            <property name="minimumSize">
             <size>
              <width>110</width>
@@ -576,10 +617,262 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="resetPage">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>15</number>
+       </property>
+       <property name="leftMargin">
+        <number>40</number>
+       </property>
+       <property name="topMargin">
+        <number>30</number>
+       </property>
+       <property name="rightMargin">
+        <number>40</number>
+       </property>
+       <property name="bottomMargin">
+        <number>30</number>
+       </property>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="reset_title">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>重置密码</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="reset_email_edit">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>35</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="placeholderText">
+          <string>请输入注册邮箱</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="reset_captcha_layout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLineEdit" name="reset_captcha_edit">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="placeholderText">
+            <string>邮箱验证码</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="TimerButton" name="reset_captcha_btn">
+           <property name="minimumSize">
+            <size>
+             <width>110</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>获取验证码</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="reset_new_password_edit">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>35</height>
+          </size>
+         </property>
+         <property name="echoMode">
+          <enum>QLineEdit::EchoMode::Password</enum>
+         </property>
+         <property name="placeholderText">
+          <string>请输入新密码 (8-20位)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="reset_confirm_password_edit">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>35</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="echoMode">
+          <enum>QLineEdit::EchoMode::Password</enum>
+         </property>
+         <property name="placeholderText">
+          <string>请确认新密码</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="reset_err_tip_label">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="reset_confirm_btn">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>确 认 重 置</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="reset_back_layout">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <spacer name="horizontalSpacer_reset_back_left">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="reset_to_login_btn">
+           <property name="text">
+            <string>返回登录</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_reset_back_right">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TimerButton</class>
+   <extends>QPushButton</extends>
+   <header location="global">timerbutton.hpp</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resource.qrc"/>
  </resources>

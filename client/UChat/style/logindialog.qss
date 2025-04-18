@@ -10,7 +10,7 @@ QDialog#LoginDialog {
 }
 
 /* 堆叠窗口和页面 - 确保背景透明 */
-QStackedWidget, QWidget#login_page, QWidget#register_page {
+QStackedWidget, QWidget#login_page, QWidget#register_page, QWidget#reset_password_page {
     background-color: transparent;
 }
 
@@ -28,26 +28,15 @@ QLabel#uchat_logo {
 }
 
 /* 注册标题 */
-QLabel#register_title {
+QLabel#register_title, QLabel#login_title, QLabel#reset_title {
     font-size: 16pt;
     font-weight: bold;
     color: palette(windowText); /* 跟随系统窗口文本颜色 */
     padding-bottom: 10px; /* 增加底部间距 */
 }
 
-/* 忘记密码 - 链接样式 */
-QLabel#forget_passwd_label {
-    font-size: 9pt;
-    color: #0078D4; /* 蓝色链接色 */
-    padding: 5px; /* 增加点击区域 */
-}
-QLabel#forget_passwd_label:hover {
-    color: #005A9E; /* 悬停加深 */
-    text-decoration: underline;
-}
-
 /* 错误提示标签 */
-QLabel#login_err_tip_label[state="error"], QLabel#register_err_tip_label[state="error"] {
+QLabel#login_err_tip_label[state="error"], QLabel#register_err_tip_label[state="error"], QLabel#reset_err_tip_label[state="error"] {
     font-size: 12pt;
     color: #E81123; /* 红色错误提示 */
     min-height: 20px;
@@ -55,7 +44,7 @@ QLabel#login_err_tip_label[state="error"], QLabel#register_err_tip_label[state="
 }
 
 /* 成功提示标签 */
-QLabel#login_err_tip_label[state="normal"], QLabel#register_err_tip_label[state="normal"] {
+QLabel#login_err_tip_label[state="normal"], QLabel#register_err_tip_label[state="normal"], QLabel#reset_err_tip_label[state="normal"] {
     font-size: 12pt;
     color: #107C10; /* 绿色成功提示 */
     min-height: 20px;
@@ -73,6 +62,11 @@ QLineEdit {
     min-height: 20px; /* 确保内容可见 */
     selection-background-color: #0078D4; /* 选中背景色 */
     selection-color: white; /* 选中文本色 */
+}
+
+/* 密码输入框的显示/隐藏按钮样式 */
+QLineEdit[echoMode="2"] QAction, QLineEdit[echoMode="0"] QAction {
+    padding: 0 5px;
 }
 
 QLineEdit:hover {
@@ -107,11 +101,11 @@ QPushButton {
 
 QPushButton:focus {
     /* 可选：为焦点状态添加视觉提示，如轻微的外边框 */
-    /* border: 1px solid palette(highlight); */
+     border: 1px solid palette(highlight);
 }
 
 /* 主要操作按钮 (登录, 注册) */
-QPushButton#login_btn, QPushButton#register_confirm_btn {
+QPushButton#login_btn, QPushButton#register_confirm_btn, QPushButton#reset_confirm_btn {
     background-color: #0078D4; /* 主题蓝色 */
     color: white;
     font-size: 12pt;
@@ -119,16 +113,16 @@ QPushButton#login_btn, QPushButton#register_confirm_btn {
     border: none; /* 主要按钮通常无边框 */
 }
 
-QPushButton#login_btn:hover, QPushButton#register_confirm_btn:hover {
+QPushButton#login_btn:hover, QPushButton#register_confirm_btn:hover, QPushButton#reset_confirm_btn:hover {
     background-color: #005A9E; /* 悬停加深 */
 }
 
-QPushButton#login_btn:pressed, QPushButton#register_confirm_btn:pressed {
+QPushButton#login_btn:pressed, QPushButton#register_confirm_btn:pressed, QPushButton#reset_confirm_btn:pressed {
     background-color: #003A6B; /* 按下更深 */
 }
 
 /* 获取验证码按钮 */
-QPushButton#reg_captcha_btn {
+TimerButton#reg_captcha_btn, TimerButton#reset_captcha_btn {
     background-color: #F0F0F0; /* 浅灰色背景 */
     color: #333333; /* 深灰色文本 */
     font-size: 10pt;
@@ -136,17 +130,17 @@ QPushButton#reg_captcha_btn {
     padding: 6px 10px; /* 稍小内边距 */
 }
 
-QPushButton#reg_captcha_btn:hover {
+TimerButton#reg_captcha_btn:hover, TimerButton#reset_captcha_btn:hover {
     background-color: #E0E0E0;
     border-color: #AAAAAA;
 }
 
-QPushButton#reg_captcha_btn:pressed {
+TimerButton#reg_captcha_btn:pressed, TimerButton#reset_captcha_btn:pressed {
     background-color: #D0D0D0;
 }
 
 /* 切换页面按钮 (链接样式) */
-QPushButton#to_register_btn, QPushButton#to_login_btn {
+QPushButton#to_register_btn, QPushButton#to_login_btn, QPushButton#reset_to_login_btn {
     background-color: transparent;
     color: #0078D4; /* 蓝色链接色 */
     font-size: 10pt;
@@ -155,12 +149,12 @@ QPushButton#to_register_btn, QPushButton#to_login_btn {
     text-align: center;
 }
 
-QPushButton#to_register_btn:hover, QPushButton#to_login_btn:hover {
+QPushButton#to_register_btn:hover, QPushButton#to_login_btn:hover, QPushButton#reset_to_login_btn:hover {
     color: #005A9E; /* 悬停加深 */
     text-decoration: underline;
 }
 
-QPushButton#to_register_btn:pressed, QPushButton#to_login_btn:pressed {
+QPushButton#to_register_btn:pressed, QPushButton#to_login_btn:pressed, QPushButton#reset_to_login_btn:pressed {
     color: #003A6B; /* 按下更深 */
 }
 
@@ -169,6 +163,24 @@ QPushButton:disabled {
     background-color: #E0E0E0 !important; /* 使用 !important 覆盖特定按钮样式 */
     color: #A0A0A0 !important;
     border-color: #D0D0D0 !important;
+}
+
+/* 忘记密码按钮 - 链接样式 */
+QPushButton#forget_passwd_btn {
+    background-color: transparent;
+    color: #0078D4; /* 蓝色链接色 */
+    font-size: 9pt;
+    border: none;
+    padding: 5px; /* 增加点击区域 */
+    text-align: right; /* 或根据布局调整 */
+}
+
+QPushButton#forget_passwd_btn:hover {
+    color: #005A9E; /* 悬停加深 */
+    text-decoration: underline;
+}
+QPushButton#forget_passwd_btn:pressed {
+    color: #003A6B; /* 按下更深 */
 }
 
 /* ==================== 滚动条 (如果需要) ==================== */

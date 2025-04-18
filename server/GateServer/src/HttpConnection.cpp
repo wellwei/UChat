@@ -6,6 +6,7 @@
 #include "HttpConnection.h"
 #include "LogicSystem.h"
 #include "util.h"
+#include "Logger.h"
 
 
 HttpConnection::HttpConnection(tcp::socket socket)
@@ -20,7 +21,7 @@ void HttpConnection::start() {
     doRead();
 }
 
-tcp::socket& HttpConnection::getSocket() {
+tcp::socket &HttpConnection::getSocket() {
     return socket_;
 }
 
@@ -39,19 +40,20 @@ void HttpConnection::doRead() {
 // 接收请求完成的回调函数
 void HttpConnection::onRead(beast::error_code ec, std::size_t bytes_transferred) {
     if (ec == asio::error::operation_aborted) {
+        LOG_WARN("Read operation aborted");
         return; // 超时，socket 在 onTimeout 中关闭
     }
 
     // 客户端关闭了连接
     if (ec == http::error::end_of_stream) {
-        std::cerr << "Client closed connection" << std::endl;
+        LOG_INFO("Client closed connection");
         deadline_.cancel();
         // 不需要调用 closeSocket，因为对端已经关闭了连接
         return;
     }
 
     if (ec) {
-        std::cerr << "Read error: " << ec.message() << std::endl;
+        LOG_WARN("Read error: {}", ec.message());
         deadline_.cancel();
         closeSocket("Read error");
         return;
@@ -87,11 +89,12 @@ void HttpConnection::doWrite() {
 
 void HttpConnection::onWrite(beast::error_code ec, std::size_t bytes_transferred, bool keep_alive) {
     if (ec == asio::error::operation_aborted) {
+        LOG_WARN("Write operation aborted");
         return; // 超时，socket 在 onTimeout 中关闭
     }
 
     if (ec) {
-        std::cerr << "Write error: " << ec.message() << std::endl;
+        LOG_WARN("Write error: {}", ec.message());
         deadline_.cancel();
         closeSocket("Write error");
         return;
@@ -123,6 +126,8 @@ void HttpConnection::handleRequest() {
             res_.result(http::status::not_found);
             res_.set(http::field::content_type, "text/plain");
             beast::ostream(res_.body()) << "Resource not found\r\n";
+            LOG_WARN("From {} {} {} {} {}", this->socket_.remote_endpoint().address().to_string(), req_.method_string(),
+                     req_.target(), req_.version(), res_.result_int());
             return;
         }
 
@@ -130,6 +135,9 @@ void HttpConnection::handleRequest() {
         if (!res_.has_content_length() && res_.body().size() > 0 && !res_.count(http::field::content_type)) {
             res_.set(http::field::content_type, "text/plain");
         }
+
+        LOG_INFO("From {} {} {} {} {}", this->socket_.remote_endpoint().address().to_string(), req_.method_string(),
+                 req_.target(), req_.version(), res_.result_int());
     } else if (req_.method() == http::verb::post) {
         // 处理 POST 请求
         bool success = LogicSystem::getInstance()->handlePostRequest(req_.target(), shared_from_this());
@@ -137,6 +145,8 @@ void HttpConnection::handleRequest() {
             res_.result(http::status::not_found);
             res_.set(http::field::content_type, "text/plain");
             beast::ostream(res_.body()) << "Resource not found\r\n";
+            LOG_WARN("From {} {} {} {} {}", this->socket_.remote_endpoint().address().to_string(), req_.method_string(),
+                     req_.target(), req_.version(), res_.result_int());
             return;
         }
 
@@ -144,11 +154,15 @@ void HttpConnection::handleRequest() {
         if (!res_.has_content_length() && res_.body().size() > 0 && !res_.count(http::field::content_type)) {
             res_.set(http::field::content_type, "application/json");
         }
+        LOG_INFO("From {} {} {} {} {}", this->socket_.remote_endpoint().address().to_string(), req_.method_string(),
+                 req_.target(), req_.version(), res_.result_int());
     } else {
         res_.result(http::status::method_not_allowed);
         res_.set(http::field::content_type, "text/plain");
         res_.set(http::field::allow, "GET");
         beast::ostream(res_.body()) << "Method not allowed\r\n";
+        LOG_WARN("From {} {} {} {} {}", this->socket_.remote_endpoint().address().to_string(), req_.method_string(),
+                 req_.target(), req_.version(), res_.result_int());
     }
 }
 
@@ -160,11 +174,11 @@ void HttpConnection::onTimeout(beast::error_code ec) {
 
     // 定时器发生错误
     if (ec) {
-        std::cerr << "Timeout error: " << ec.message() << std::endl;
+        LOG_WARN("Timeout error: {}", ec.message());
         return;
     }
 
-    std::cerr << "Request timed out" << std::endl;
+    LOG_DEBUG("Idle timeout, closing socket");
     closeSocket("Idle timeout");
 }
 
@@ -185,7 +199,7 @@ void HttpConnection::closeSocket(const std::string &reason) {
     socket_.shutdown(tcp::socket::shutdown_both, ec);   // 忽略关闭错误，无论如何都会关闭
     socket_.close(ec); // 关闭套接字
     if (ec) {
-        std::cerr << "Socket close error: " << ec.message() << std::endl;
+        LOG_WARN("Socket close error: {}", ec.message());
     }
 
     deadline_.cancel(); // 取消定时器

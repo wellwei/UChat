@@ -5,7 +5,8 @@ find_package(redis++ CONFIG REQUIRED)
 add_executable(tests ${TEST_FILES}
         TestRedisMgr.h
         TestIsValid.h
-        TestMysql.h)
+        TestMysql.h
+        TestLogger.h)
 
 target_link_libraries(tests
         GateServerLib

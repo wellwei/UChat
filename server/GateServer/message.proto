@@ -14,3 +14,22 @@ message VerifyResponse {
 service VerifyService {
   rpc GetVerifyCode (VerifyRequest) returns (VerifyResponse) {}
 }
+
+// Status Server
+
+message StatusRequest {
+  uint64 uid = 1;
+}
+
+message StatusResponse {
+  int32 code = 1;
+  string message = 2;
+  string host = 3;
+  string port = 4;
+  string token = 5;
+  string expire_time = 6;
+}
+
+service StatusService {
+  rpc GetStatus (StatusRequest) returns (StatusResponse) {}
+}

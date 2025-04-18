@@ -16,15 +16,20 @@ public:
     ~HttpMgr();
 
     void PostHttpReq(const QUrl &url, const QJsonObject &jsonObj, ReqId reqId, Modules module);
-    
+
     // 登录接口
     void login(const QString &username, const QString &password);
-    
+
     // 注册接口
     void registerUser(const QString &username, const QString &password, const QString &email, const QString &captcha);
-    
+
+    // 重置密码接口
+    void resetPassword(const QString &email, const QString &captcha, const QString &newPassword);
+
     // 获取验证码
-    void getCaptcha(const QString &email);
+    void getVerify(const QString &email);
+
+    void getPasswordResetCode(const QString &email);
 
 private:
     friend class Singleton<HttpMgr>;
@@ -36,6 +41,7 @@ signals:
     void sig_http_finish(ReqId id, const QString& res, ErrorCodes err, Modules module);
     void sig_reg_mod_finish(ReqId id, const QString& res, ErrorCodes err);
     void sig_login_finish(ReqId id, const QString& res, ErrorCodes err);
+    void sig_reset_mod_finish(ReqId id, const QString& res, ErrorCodes err);
 
 private slots:
     void slot_http_finish(ReqId id, const QString& res, ErrorCodes err, Modules module);

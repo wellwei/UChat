@@ -7,13 +7,14 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/filesystem.hpp>
+#include "Logger.h"
 
 ConfigMgr::ConfigMgr() {
     // 获取配置文件路径
     boost::filesystem::path config_path = boost::filesystem::current_path() / "config.ini";
     if (!boost::filesystem::exists(config_path)) {
-        std::cerr << "Config file not found: " << config_path.string() << std::endl;
-        return;
+        LOG_CRITICAL("Config file not found: {}", config_path.string());
+        exit(1);
     }
 
     // 读取配置文件

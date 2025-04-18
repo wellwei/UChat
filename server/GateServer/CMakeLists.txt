@@ -13,8 +13,9 @@ cmake_policy(SET CMP0167 NEW)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS beast asio filesystem)
 find_package(Protobuf CONFIG REQUIRED)
-find_package(grpc CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 find_package(redis++ CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
@@ -76,7 +77,6 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/global.cpp
         src/ServicePool.cpp
         src/ServicePool.h
-        src/GrpcStubPool.cpp
         src/GrpcStubPool.h
         src/RedisConnPool.cpp
         src/RedisConnPool.h
@@ -88,10 +88,18 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/MysqlDao.cpp
         src/MysqlDao.h
         src/MysqlMgr.cpp
-        src/MysqlMgr.h)
+        src/MysqlMgr.h
+        src/Logger.cpp
+        src/Logger.h
+        src/StatusGrpcClient.cpp
+        src/StatusGrpcClient.h
+        src/models/UserInfo.cpp
+        src/models/UserInfo.h
+)
 
 target_include_directories(GateServerLib PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/models>
 )
 
 # 添加 MySQL Connector/C++
@@ -99,12 +107,16 @@ set(MYSQL_CPPCON /usr/local/mysql/connector-c++-8.3.0)
 target_include_directories(GateServerLib PUBLIC ${MYSQL_CPPCON}/include)
 target_link_directories(GateServerLib PUBLIC ${MYSQL_CPPCON}/lib64)
 
-target_link_libraries(GateServerLib PUBLIC nlohmann_json::nlohmann_json)
-target_link_libraries(GateServerLib PUBLIC Boost::asio Boost::beast Boost::filesystem)
-target_link_libraries(GateServerLib PUBLIC proto_lib)
-target_link_libraries(GateServerLib PUBLIC redis++::redis++_static)
-target_link_libraries(GateServerLib PUBLIC mysqlcppconn)
+target_link_libraries(GateServerLib PUBLIC
+        nlohmann_json::nlohmann_json
+        Boost::asio Boost::beast Boost::filesystem
+        proto_lib
+        redis++::redis++_static
+        spdlog::spdlog
+        mysqlcppconn
+)
 
+# 主程序
 add_executable(GateServer main.cpp)
 target_link_libraries(GateServer PRIVATE GateServerLib)
 

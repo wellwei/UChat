@@ -27,7 +27,7 @@ public:
 private:
     VerifyGrpcClient();
 
-    std::unique_ptr<GrpcStubPool> stub_pool_; // gRPC 存根池
+    std::unique_ptr<GrpcStubPool<VerifyService>> stub_pool_; // gRPC 存根池
 };
 
 

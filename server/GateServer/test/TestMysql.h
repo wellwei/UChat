@@ -1,28 +1,17 @@
-#include <mysql/jdbc.h>
-#include "ConfigMgr.h"
+#include "MysqlMgr.h"
 
-// 在连接前后添加内存检查
+
 void TestMysql() {
+    auto mysqlMgr = MysqlMgr::getInstance();
 
-    std::string host = "3486vskn5236.vicp.fun";
-    std::string port = "18057";
-    std::string user = "root";
-    std::string password = "dPGNaHRTj4b2crnt";
+    std::string email = "1827104243@qq11.com";
+    std::cout << mysqlMgr->getUidByEmail(email) << std::endl;
 
-    sql::mysql::MySQL_Driver *driver = nullptr;
-    try {
-        driver = sql::mysql::get_mysql_driver_instance();
-        std::unique_ptr<sql::Connection> con(driver->connect("tcp://" + host + ":" + port, user, password));
-        std::cout << "Connected to MySQL server at " << host << ":" << port << " as user " << user << std::endl;
-
-        con->close();
-        // 移除 driver->threadEnd(); 除非你明确知道需要它
-    } catch (...) {
-        std::cerr << "Failed to connect to MySQL server at " << host << ":" << port << " as user " << user << std::endl;
-        exit(1);
-    }
-
-    if (driver) {
-        driver->threadEnd();
-    }
+//    std::string password = "123456";
+//    int uid = mysqlMgr->getUidByEmail(email);
+//    if (mysqlMgr->resetPassword(uid, password)) {
+//        std::cout << "Password reset successfully" << std::endl;
+//    } else {
+//        std::cout << "Failed to reset password" << std::endl;
+//    }
 }

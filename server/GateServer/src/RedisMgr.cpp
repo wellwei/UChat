@@ -4,6 +4,7 @@
 
 #include "RedisMgr.h"
 #include "ConfigMgr.h"
+#include "Logger.h"
 
 RedisMgr::RedisMgr() {
     auto config_mgr = *ConfigMgr::getInstance();
@@ -22,7 +23,7 @@ RedisMgr::~RedisMgr() {
 std::optional<std::string> RedisMgr::get(const std::string &key) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return std::nullopt; // 返回空值
     }
     try {
@@ -35,7 +36,7 @@ std::optional<std::string> RedisMgr::get(const std::string &key) {
         }
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis get error: " << e.what() << std::endl;
+        LOG_ERROR("Redis get error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return std::nullopt;
     }
@@ -45,7 +46,7 @@ std::optional<std::string> RedisMgr::get(const std::string &key) {
 bool RedisMgr::set(const std::string &key, const std::string &value, int ttl_seconds) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -58,7 +59,7 @@ bool RedisMgr::set(const std::string &key, const std::string &value, int ttl_sec
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis set error: " << e.what() << std::endl;
+        LOG_ERROR("Redis set error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -68,7 +69,7 @@ bool RedisMgr::set(const std::string &key, const std::string &value, int ttl_sec
 bool RedisMgr::del(const std::string &key) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -77,7 +78,7 @@ bool RedisMgr::del(const std::string &key) {
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis del error: " << e.what() << std::endl;
+        LOG_ERROR("Redis del error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -87,7 +88,7 @@ bool RedisMgr::del(const std::string &key) {
 bool RedisMgr::exists(const std::string &key) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -96,7 +97,7 @@ bool RedisMgr::exists(const std::string &key) {
         return result;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis exists error: " << e.what() << std::endl;
+        LOG_ERROR("Redis exists error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -106,7 +107,7 @@ bool RedisMgr::exists(const std::string &key) {
 bool RedisMgr::expire(const std::string &key, int ttl_seconds) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -115,7 +116,7 @@ bool RedisMgr::expire(const std::string &key, int ttl_seconds) {
         return result;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis expire error: " << e.what() << std::endl;
+        LOG_ERROR("Redis expire error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -125,7 +126,7 @@ bool RedisMgr::expire(const std::string &key, int ttl_seconds) {
 bool RedisMgr::hset(const std::string &key, const std::string &field, const std::string &value) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -134,7 +135,7 @@ bool RedisMgr::hset(const std::string &key, const std::string &field, const std:
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis hset error: " << e.what() << std::endl;
+        LOG_ERROR("Redis hset error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -144,7 +145,7 @@ bool RedisMgr::hset(const std::string &key, const std::string &field, const std:
 std::optional<std::string> RedisMgr::hget(const std::string &key, const std::string &field) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return std::nullopt;
     }
     try {
@@ -157,7 +158,7 @@ std::optional<std::string> RedisMgr::hget(const std::string &key, const std::str
         }
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis hget error: " << e.what() << std::endl;
+        LOG_ERROR("Redis hget error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return std::nullopt;
     }
@@ -167,7 +168,7 @@ std::optional<std::string> RedisMgr::hget(const std::string &key, const std::str
 bool RedisMgr::hdel(const std::string &key, const std::string &field) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -176,7 +177,7 @@ bool RedisMgr::hdel(const std::string &key, const std::string &field) {
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis hdel error: " << e.what() << std::endl;
+        LOG_ERROR("Redis hdel error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -186,7 +187,7 @@ bool RedisMgr::hdel(const std::string &key, const std::string &field) {
 bool RedisMgr::hexists(const std::string &key, const std::string &field) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -195,7 +196,7 @@ bool RedisMgr::hexists(const std::string &key, const std::string &field) {
         return result;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis hexists error: " << e.what() << std::endl;
+        LOG_ERROR("Redis hexists error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -205,7 +206,7 @@ bool RedisMgr::hexists(const std::string &key, const std::string &field) {
 bool RedisMgr::lpush(const std::string &key, const std::string &value) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -214,7 +215,7 @@ bool RedisMgr::lpush(const std::string &key, const std::string &value) {
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis lpush error: " << e.what() << std::endl;
+        LOG_ERROR("Redis lpush error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -224,7 +225,7 @@ bool RedisMgr::lpush(const std::string &key, const std::string &value) {
 std::optional<std::string> RedisMgr::lpop(const std::string &key) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return std::nullopt;
     }
     try {
@@ -237,7 +238,7 @@ std::optional<std::string> RedisMgr::lpop(const std::string &key) {
         }
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis lpop error: " << e.what() << std::endl;
+        LOG_ERROR("Redis lpop error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return std::nullopt;
     }
@@ -247,7 +248,7 @@ std::optional<std::string> RedisMgr::lpop(const std::string &key) {
 bool RedisMgr::rpush(const std::string &key, const std::string &value) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return false;
     }
     try {
@@ -256,7 +257,7 @@ bool RedisMgr::rpush(const std::string &key, const std::string &value) {
         return true;
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis rpush error: " << e.what() << std::endl;
+        LOG_ERROR("Redis rpush error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return false;
     }
@@ -266,7 +267,7 @@ bool RedisMgr::rpush(const std::string &key, const std::string &value) {
 std::optional<std::string> RedisMgr::rpop(const std::string &key) {
     auto conn = _redis_conn_pool->getConnection();
     if (!conn) {
-        std::cerr << "Failed to get Redis connection" << std::endl;
+        LOG_ERROR("Failed to get Redis connection");
         return std::nullopt;
     }
     try {
@@ -279,7 +280,7 @@ std::optional<std::string> RedisMgr::rpop(const std::string &key) {
         }
     }
     catch (const sw::redis::Error &e) {
-        std::cerr << "Redis rpop error: " << e.what() << std::endl;
+        LOG_ERROR("Redis rpop error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return std::nullopt;
     }

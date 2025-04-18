@@ -7,16 +7,30 @@
 
 #include <memory>
 #include "MysqlConnPool.h"
+#include "UserInfo.h"
 
 class MysqlDao {
-public:
-    MysqlDao();
+    friend class MysqlMgr;
 
+public:
     ~MysqlDao();
 
-    int RegisterUser(const std::string &name, const std::string &email, const std::string &password);
+    MysqlDao();
 
 private:
+
+    int registerUser(const std::string &name, const std::string &email, const std::string &password);
+
+    int getUidByEmail(const std::string &email);
+
+    int getUidByUsername(const std::string &username);
+
+    UserInfo getUserInfo(int uid);
+
+    bool resetPassword(int uid, const std::string &password);
+
+    bool checkPassword(int uid, const std::string &password);
+
     std::unique_ptr<MysqlConnPool> _conn_pool; // MySQL 连接池
 };
 

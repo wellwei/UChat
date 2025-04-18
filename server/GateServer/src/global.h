@@ -30,6 +30,9 @@ enum ErrorCode {
     EMAIL_EXISTS = 1006,
     USERNAME_EXISTS = 1007,
     MYSQL_ERROR = 1008,
+    EMAIL_NOT_REGISTERED = 1009,
+    USERNAME_OR_PASSWORD_ERROR = 1010,
+    NETWORK_ERROR = 1011,
 };
 
 enum RequestType {
@@ -37,5 +40,41 @@ enum RequestType {
     POST = 2,
     PUT = 3,
 };
+
+// 获取当前主机名
+inline std::string getHostName() {
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname)) == 0) {
+        return {hostname};
+    } else {
+        return "Unknown";
+    }
+}
+
+// 获取当前时间，格式为 YYYY-MM-DD_HH-MM-SS
+inline std::string getCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&time);
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d_%H-%M-%S", &tm);
+    return {buffer};
+}
+
+// 获取当前日期，格式为 YYYY-MM-DD
+inline std::string getCurrentDate() {
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&time);
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm);
+    return {buffer};
+}
+
+// 获取当前时间点
+inline std::chrono::system_clock::time_point getCurrentTimePoint() {
+    return std::chrono::system_clock::now();
+}
+
 
 #endif //GATESERVER_GLOBAL_H

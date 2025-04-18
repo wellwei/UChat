@@ -4,11 +4,12 @@
 
 #include "VerifyGrpcClient.h"
 #include "ConfigMgr.h"
+#include "Logger.h"
 
 VerifyGrpcClient::VerifyGrpcClient() {
     auto config_mgr = *ConfigMgr::getInstance(); // 获取配置管理器实例
     std::string server_address = config_mgr["VerifyServer"]["host"] + ":" + config_mgr["VerifyServer"]["port"];
-    stub_pool_ = std::make_unique<GrpcStubPool>(16, server_address); // 创建 gRPC 存根池
+    stub_pool_ = std::make_unique<GrpcStubPool<VerifyService>>(8, server_address); // 创建 gRPC 存根池
 }
 
 VerifyResponse VerifyGrpcClient::getVerifyCode(const std::string &email) {
@@ -24,7 +25,7 @@ VerifyResponse VerifyGrpcClient::getVerifyCode(const std::string &email) {
         return reply; // 返回响应对象
     } else {
         reply.set_code(ErrorCode::RPC_ERROR);
-        std::cerr << "RPC failed: " << status.error_message() << std::endl;
+        LOG_ERROR("RPC faild: {}", status.error_message());
         return reply; // 返回错误响应
     }
 }

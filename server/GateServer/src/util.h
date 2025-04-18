@@ -113,4 +113,19 @@ inline std::string hashPassword(const std::string &password) {
     return hashedPassword;
 }
 
+// 自动释放资源的类
+class Defer {
+public:
+    explicit Defer(std::function<void()> func) : func_(std::move(func)) {}
+
+    ~Defer() {
+        if (func_) {
+            func_();
+        }
+    }
+
+private:
+    std::function<void()> func_;
+};
+
 #endif //GATESERVER_UTIL_H

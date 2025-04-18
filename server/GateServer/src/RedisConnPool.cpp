@@ -3,7 +3,7 @@
 //
 
 #include "RedisConnPool.h"
-
+#include "Logger.h"
 #include <utility>
 
 RedisConnPool::RedisConnPool(size_t pool_size, std::string host, int port, const std::string &password)
@@ -11,18 +11,25 @@ RedisConnPool::RedisConnPool(size_t pool_size, std::string host, int port, const
           _host(std::move(host)),
           _port(port),
           _stop(false) {
-    for (size_t i = 0; i < _pool_size; ++i) {
-        try {
+    try {
+        for (size_t i = 0; i < _pool_size; ++i) {
             auto conn = std::make_shared<sw::redis::Redis>("tcp://" + _host + ":" + std::to_string(_port));
             conn->auth(password);
             _connections.push(std::move(conn));
         }
-        catch (const sw::redis::Error &e) {
-            std::cerr << "Failed to create Redis connection: " << e.what() << std::endl;
-        }
-        catch (const std::exception &e) {
-            std::cerr << "Exception: " << e.what() << std::endl;
-        }
+        LOG_INFO("Redis connection pool created with size: {}", _pool_size);
+    }
+    catch (const sw::redis::Error &e) {
+        LOG_CRITICAL("Error creating Redis connection pool: {}", e.what());
+        throw;
+    }
+    catch (const std::exception &e) {
+        LOG_CRITICAL("Error creating Redis connection pool: {}", e.what());
+        throw;
+    }
+    catch (...) {
+        LOG_CRITICAL("Unknown error creating Redis connection pool");
+        throw;
     }
 }
 

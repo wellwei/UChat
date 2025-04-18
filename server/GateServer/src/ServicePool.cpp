@@ -3,6 +3,7 @@
 //
 
 #include "ServicePool.h"
+#include "Logger.h"
 
 ServicePool::ServicePool(size_t pool_size)
         : _services(pool_size),
@@ -15,7 +16,7 @@ ServicePool::ServicePool(size_t pool_size)
             try {
                 _services[i]->run();
             } catch (const std::exception &e) {
-                std::cerr << "Thread " << i << " error: " << e.what() << std::endl;
+                LOG_ERROR("Service thread {} encountered an error: {}", i, e.what());
             }
         });
     }

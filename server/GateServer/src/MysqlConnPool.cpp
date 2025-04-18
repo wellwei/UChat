@@ -3,6 +3,7 @@
 //
 
 #include "MysqlConnPool.h"
+#include "Logger.h"
 
 MysqlConnPool::MysqlConnPool(std::string url, std::string user, std::string password, std::string db, int poolSize)
         : _url(std::move(url)),
@@ -16,9 +17,10 @@ MysqlConnPool::MysqlConnPool(std::string url, std::string user, std::string pass
             conn->setSchema(_db);
             _connectionPool.push(std::move(conn));
         }
+        LOG_INFO("MySQL connection pool created with size: {}", _poolSize);
     }
     catch (sql::SQLException &e) {
-        std::cerr << "Error creating MySQL connection pool: " << e.what() << std::endl;
+        LOG_CRITICAL("Error creating MySQL connection pool: {}", e.what());
         throw;
     }
 }

@@ -19,6 +19,7 @@ class LogicSystem : public Singleton<LogicSystem>,
 
 public:
     using HttpRequestHandler = std::function<void(std::shared_ptr<HttpConnection>)>;
+    using HandlerMap = std::unordered_map<std::string, HttpRequestHandler>;
 
     ~LogicSystem() = default;
 
@@ -26,15 +27,17 @@ public:
 
     bool handlePostRequest(const std::string &url, std::shared_ptr<HttpConnection> connection);
 
-    void registerHandler(RequestType type, const std::string &url, const HttpRequestHandler& handler);
+    bool handlePutRequest(const std::string &url, std::shared_ptr<HttpConnection> connection);
+
+    void registerHandler(RequestType type, const std::string &url, const HttpRequestHandler &handler);
 
 private:
-    using HandlerMap = std::unordered_map<std::string, HttpRequestHandler>;
 
     LogicSystem();
 
     HandlerMap get_handlers_;
     HandlerMap post_handlers_;
+    HandlerMap put_handlers_;
 };
 
 

@@ -2,10 +2,10 @@
 // Created by wellwei on 2025/4/1.
 //
 
-#include <iostream>
 #include "CServer.h"
 #include "HttpConnection.h"
 #include "ServicePool.h"
+#include "Logger.h"
 
 CServer::CServer(boost::asio::io_context &ioc, unsigned short &port)
         : ioc_(ioc),
@@ -28,7 +28,7 @@ void CServer::start() {
                 return;
             }
 
-            std::cout << "Accepted connection from: " << new_connection->getSocket().remote_endpoint() << std::endl;
+            LOG_DEBUG("接收到新连接 {}", new_connection->getSocket().remote_endpoint().address().to_string());
 
             new_connection->start(); // 启动新连接
 
@@ -36,7 +36,7 @@ void CServer::start() {
             self->start();
         }
         catch (const std::exception &e) {
-            std::cerr << "Error accepting connection: " << e.what() << std::endl;
+            LOG_WARN("接收连接失败：{}", e.what());
             self->start();
         }
     });
