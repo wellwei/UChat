@@ -8,28 +8,37 @@
 #include <memory>
 #include <iostream>
 
-// 单例模式模板类（线程安全）
+// 单例模式饿汉式模板类（线程安全）
 template<typename T>
 class Singleton {
 protected:
     Singleton() = default;
 
-    Singleton(const Singleton<T> &) = delete;
-
-    Singleton &operator=(const Singleton<T> &) = delete;
-
-    ~Singleton() = default;
+    virtual ~Singleton() = default;
 
 public:
-    // 获取单例实例，静态局部变量保证线程安全
-    static std::shared_ptr<T> getInstance() {
-        static std::shared_ptr<T> instance(new T());
+    Singleton(const Singleton &) = delete;
+
+    Singleton &operator=(const Singleton &) = delete;
+
+    Singleton(Singleton &&) = delete;
+
+    Singleton &operator=(Singleton &&) = delete;
+
+    // 获取单例实例
+    static T &getInstance() {
         return instance;
     }
 
     void printAddress() {
         std::cout << "Singleton instance address: " << this << std::endl;
     }
+
+private:
+    static T instance; // 静态实例
 };
+
+template<typename T>
+T Singleton<T>::instance; // 静态实例初始化
 
 #endif //UCHAT_SINGLETON_H

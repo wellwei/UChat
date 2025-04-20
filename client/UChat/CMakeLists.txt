@@ -39,6 +39,8 @@ set(PROJECT_SOURCES
         HttpMgr.h
         timerbutton.cpp
         timerbutton.hpp
+        TcpClient.cpp
+        TcpClient.h
 )
 
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)

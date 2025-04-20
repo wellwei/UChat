@@ -24,9 +24,9 @@ LoginDialog::LoginDialog(QWidget *parent)
     ui->stackedWidget->setCurrentIndex(0);
 
     // 连接 HTTP 管理器信号
-    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
-    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
-    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    connect(&HttpMgr::getInstance(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
+    connect(&HttpMgr::getInstance(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
+    connect(&HttpMgr::getInstance(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
 
     // 设置密码框显示/隐藏按钮
     setupPasswordVisibilityToggle();
@@ -37,9 +37,9 @@ LoginDialog::LoginDialog(QWidget *parent)
 
 LoginDialog::~LoginDialog() {
     qDebug() << "LoginDialog destroyed";
-    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
-    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
-    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
+    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
+    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
     delete ui;
     if (mainWindow) {
         delete mainWindow;
@@ -85,7 +85,7 @@ void LoginDialog::on_login_btn_clicked() {
     setEnabled(false); // 禁用登录按钮
 
     // 调用登录接口
-    HttpMgr::getInstance()->login(username, password);
+    HttpMgr::getInstance().login(username, password);
 }
 
 // 忘记密码按钮点击
@@ -151,7 +151,7 @@ void LoginDialog::on_register_confirm_btn_clicked() {
     setEnabled(false);
 
     // 调用注册接口
-    HttpMgr::getInstance()->registerUser(username, password, email, captcha);
+    HttpMgr::getInstance().registerUser(username, password, email, captcha);
 }
 
 // 注册页面 - 获取验证码按钮点击
@@ -162,7 +162,7 @@ void LoginDialog::on_reg_captcha_btn_clicked() {
     bool match = regx.match(email).hasMatch();
     if (match) {
         // 发送验证码请求
-        HttpMgr::getInstance()->getVerify(email);
+        HttpMgr::getInstance().getVerify(email);
         showTip(ui->register_err_tip_label, tr("验证码发送中..."), false);
         setEnabled(false); // 禁用按钮
     } else {
@@ -217,7 +217,7 @@ void LoginDialog::on_reset_captcha_btn_clicked() {
     bool match = regx.match(email).hasMatch();
     if (match) {
         // 发送验证码请求
-        HttpMgr::getInstance()->getPasswordResetCode(email);
+        HttpMgr::getInstance().getPasswordResetCode(email);
         showTip(ui->reset_err_tip_label, tr("验证码发送中..."), false);
         setEnabled(false);
     } else {
@@ -234,7 +234,7 @@ void LoginDialog::on_reset_confirm_btn_clicked() {
     QString newPassword = ui->reset_new_password_edit->text();
 
     showTip(ui->reset_err_tip_label, tr("正在重置密码..."), false);
-    HttpMgr::getInstance()->resetPassword(email, code, newPassword);
+    HttpMgr::getInstance().resetPassword(email, code, newPassword);
     setEnabled(false);
 }
 
