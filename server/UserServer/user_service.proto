@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+
+enum UserStatus {
+    ONLINE = 0;
+    OFFLINE = 1;
+    BUSY = 2;
+    AWAY = 3;
+    INVISIBLE = 4;
+    DND = 5;
+}
+
+enum UserGender {
+    OTHER = 0;
+    MALE = 1;
+    FEMALE = 2;
+}
+
+message UserProfile {
+    uint64 uid = 1;
+    string username = 2;
+    string nickname = 3;
+    string avatar_url = 4;
+    string email = 5;
+    string phone = 6;
+    UserGender gender = 7;
+    string signature = 8;
+    string location = 9;
+    UserStatus status = 10;
+    string create_time = 11;
+    string update_time = 12;    
+}
+
+message VerifyCredentialsRequest {
+    string handle = 1;
+    string password = 2;
+}
+
+message VerifyCredentialsResponse {
+    bool success = 1;
+    string error_msg = 2;
+    uint64 uid = 3;
+    UserProfile user_profile = 4;
+    string token = 5;
+}
+
+message CreateUserRequest {
+    string username = 1;
+    string password = 2;
+    string email = 3;
+}
+
+message CreateUserResponse {
+    bool success = 1;
+    string error_msg = 2;
+    uint64 uid = 3;
+}
+
+message GetUserProfileRequest {
+    uint64 uid = 1;
+}
+
+message GetUserProfileResponse {
+    bool success = 1;
+    string error_msg = 2;
+    UserProfile user_profile = 3;
+}
+
+message UpdateUserProfileRequest {
+    uint64 uid = 1;
+    UserProfile user_profile = 2;
+}
+
+message UpdateUserProfileResponse {
+    bool success = 1;
+    string error_msg = 2;
+    UserProfile user_profile = 3;
+}
+
+// 用户服务
+service UserService {
+    // 验证用户凭证
+    rpc VerifyCredentials(VerifyCredentialsRequest) returns (VerifyCredentialsResponse) {}
+
+    // 创建用户
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+
+    // 获取用户资料
+    rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {}
+
+    // 更新用户资料
+    rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse) {}
+}

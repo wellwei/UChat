@@ -1,0 +1,9 @@
+.idea/
+.vscode/
+
+build/
+
+proto_generated/*.h
+proto_generated/*.cc
+
+vcpkg_installed/
