@@ -24,5 +24,7 @@
   }, {
     "name" : "nlohmann-json",
     "version>=" : "3.12.0"
+  }, {
+    "name" : "jwt-cpp"
   } ]
 }

@@ -1,32 +1,38 @@
 #include "logindialog.hpp"
 #include "ui_logindialog.h"
-#include "mainwindow.hpp"
 #include "HttpMgr.h"
 
-#include <QMessageBox>
-#include <QAction>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTimer>
 
 LoginDialog::LoginDialog(QWidget *parent)
-        : QDialog(parent), ui(new Ui::LoginDialog), mainWindow(nullptr) {
+        : QDialog(parent), ui(new Ui::LoginDialog) {
     ui->setupUi(this);
 
     // 设置窗口样式表
-    QFile qss(":/style/logindialog.qss");
+    QFile qss(":/resource/style/logindialog.qss");
     if (qss.open(QFile::ReadOnly)) {
         QString style = QLatin1String(qss.readAll());
         this->setStyleSheet(style);
         qss.close();
     } else {
-        qDebug() << "Failed to open :/style/stylesheet.qss";
+        qDebug() << "Failed to open :/resource/style/logindialog.qss" << qss.errorString();
     }
 
     // 初始显示登录页面
     ui->stackedWidget->setCurrentIndex(0);
 
+    // 初始化错误提示标签状态
+    ui->login_err_tip_label->setProperty("state", "");
+    ui->register_err_tip_label->setProperty("state", "");
+    ui->reset_err_tip_label->setProperty("state", "");
+
     // 连接 HTTP 管理器信号
-    connect(&HttpMgr::getInstance(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
-    connect(&HttpMgr::getInstance(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
-    connect(&HttpMgr::getInstance(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
+    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
+    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
 
     // 设置密码框显示/隐藏按钮
     setupPasswordVisibilityToggle();
@@ -37,13 +43,10 @@ LoginDialog::LoginDialog(QWidget *parent)
 
 LoginDialog::~LoginDialog() {
     qDebug() << "LoginDialog destroyed";
-    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
-    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
-    disconnect(&HttpMgr::getInstance(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
+    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
+    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
     delete ui;
-    if (mainWindow) {
-        delete mainWindow;
-    }
 }
 
 void LoginDialog::showEvent(QShowEvent *event) {
@@ -82,10 +85,10 @@ void LoginDialog::on_login_btn_clicked() {
 
     // 显示正在登录提示
     showTip(ui->login_err_tip_label, tr("正在登录..."), false);
-    setEnabled(false); // 禁用登录按钮
+    setEnabled(false);
 
     // 调用登录接口
-    HttpMgr::getInstance().login(username, password);
+    HttpMgr::getInstance()->login(username, password);
 }
 
 // 忘记密码按钮点击
@@ -100,8 +103,6 @@ void LoginDialog::on_to_register_btn_clicked() {
 
 // 登录请求处理
 void LoginDialog::slot_login_finish(ReqId id, const QString &res, ErrorCodes err) {
-    ui->login_btn->setEnabled(true); // 启用登录按钮
-
     if (err != ErrorCodes::SUCCESS) {
         showTip(ui->login_err_tip_label, tr("网络错误"));
         return;
@@ -151,7 +152,7 @@ void LoginDialog::on_register_confirm_btn_clicked() {
     setEnabled(false);
 
     // 调用注册接口
-    HttpMgr::getInstance().registerUser(username, password, email, captcha);
+    HttpMgr::getInstance()->registerUser(username, password, email, captcha);
 }
 
 // 注册页面 - 获取验证码按钮点击
@@ -162,7 +163,7 @@ void LoginDialog::on_reg_captcha_btn_clicked() {
     bool match = regx.match(email).hasMatch();
     if (match) {
         // 发送验证码请求
-        HttpMgr::getInstance().getVerify(email);
+        HttpMgr::getInstance()->getVerify(email);
         showTip(ui->register_err_tip_label, tr("验证码发送中..."), false);
         setEnabled(false); // 禁用按钮
     } else {
@@ -177,7 +178,7 @@ void LoginDialog::on_to_login_btn_clicked() {
 
 // 注册请求处理
 void LoginDialog::slot_reg_mod_finish(ReqId id, const QString &res, ErrorCodes err) {
-    ui->register_confirm_btn->setEnabled(true); // 启用注册按钮
+    setEnabled(true); // 启用注册按钮
     if (err != ErrorCodes::SUCCESS) {
         showTip(ui->register_err_tip_label, tr("网络错误"));
         return;
@@ -217,7 +218,7 @@ void LoginDialog::on_reset_captcha_btn_clicked() {
     bool match = regx.match(email).hasMatch();
     if (match) {
         // 发送验证码请求
-        HttpMgr::getInstance().getPasswordResetCode(email);
+        HttpMgr::getInstance()->getPasswordResetCode(email);
         showTip(ui->reset_err_tip_label, tr("验证码发送中..."), false);
         setEnabled(false);
     } else {
@@ -234,7 +235,7 @@ void LoginDialog::on_reset_confirm_btn_clicked() {
     QString newPassword = ui->reset_new_password_edit->text();
 
     showTip(ui->reset_err_tip_label, tr("正在重置密码..."), false);
-    HttpMgr::getInstance().resetPassword(email, code, newPassword);
+    HttpMgr::getInstance()->resetPassword(email, code, newPassword);
     setEnabled(false);
 }
 
@@ -274,8 +275,9 @@ void LoginDialog::showTip(QLabel *label, const QString &tip, bool err) {
     if (err) {
         label->setProperty("state", "error");
     } else {
-        label->setProperty("state", "normal");
+        label->setProperty("state", "success");
     }
+
     repolish(label);
 }
 
@@ -440,26 +442,33 @@ bool LoginDialog::validateResetConfirmInput() {
 void LoginDialog::initHttpHandlers() {
     // 登录请求响应处理
     _handlers.insert(ReqId::ID_LOGIN, [this](const QJsonObject &jsonObj) {
-        ui->login_btn->setEnabled(true);
-
+        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
+
         if (error_code == 0) {
             // 登录成功
             QString username = ui->username_edit->text().trimmed();
             QString token = jsonObj.value("token").toString();
+            int uid = jsonObj.value("uid").toInt();
+            QString host = jsonObj.value("host").toString();
+            QString port = jsonObj.value("port").toString();
 
-            QJsonObject loginResponse = jsonObj;
-            if (!loginResponse.contains("username")) {
-                loginResponse["username"] = username;
-            }
+            // 创建ServerInfo对象
+            ServerInfo serverInfo;
+            serverInfo.host = host;
+            serverInfo.port = port;
+            serverInfo.token = token;
+            serverInfo.uid = uid;
 
+            // TODO 连接ChatServer
 
             // 发送登录成功信号
-            emit loginSuccess(username);
-
-            // 隐藏登录窗口并显示主窗口
-            this->hide();
-            mainWindow->show();
+            if (true) {
+                emit loginSuccess(serverInfo);
+                accept();
+            } else {
+                showTip(ui->login_err_tip_label, tr("连接聊天服务器失败"));
+            }
         } else {
             // 登录失败
             showTip(ui->login_err_tip_label, getErrorMessage(static_cast<ErrorCodes>(error_code)));
@@ -468,7 +477,7 @@ void LoginDialog::initHttpHandlers() {
 
     // 验证码请求响应处理
     _handlers.insert(ReqId::ID_GET_VERIFYCODE, [this](const QJsonObject &jsonObj) {
-        ui->reg_captcha_btn->setEnabled(true);
+        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->register_err_tip_label, tr("验证码已发送到邮箱，请注意查收"), false);
@@ -481,7 +490,7 @@ void LoginDialog::initHttpHandlers() {
 
     // 注册请求响应处理
     _handlers.insert(ReqId::ID_REGISTER, [this](const QJsonObject &jsonObj) {
-        ui->register_confirm_btn->setEnabled(true);
+        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             // 注册成功
@@ -500,7 +509,7 @@ void LoginDialog::initHttpHandlers() {
 
     // 重置密码 - 获取验证码响应处理
     _handlers.insert(ReqId::ID_FORGET_PWD_REQUEST_CODE, [this](const QJsonObject &jsonObj) {
-        ui->reset_captcha_btn->setEnabled(true);
+        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->reset_err_tip_label, tr("验证码已发送到邮箱，请注意查收"), false);
@@ -513,7 +522,7 @@ void LoginDialog::initHttpHandlers() {
 
     // 重置密码 - 确认重置响应处理
     _handlers.insert(ReqId::ID_RESET_PASSWORD, [this](const QJsonObject &jsonObj) {
-        ui->reset_confirm_btn->setEnabled(true);
+        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->reset_err_tip_label, tr("密码重置成功！正在跳转到登录页面..."), false);
@@ -528,32 +537,32 @@ void LoginDialog::initHttpHandlers() {
 void LoginDialog::setupPasswordVisibilityToggle() {
     // 登录页面密码框
     QAction *loginPasswordAction = new QAction(this);
-    loginPasswordAction->setIcon(QIcon(":/image/invisible.svg"));
+    loginPasswordAction->setIcon(QIcon(":/resource/image/password_invisible.svg"));
     ui->password_edit->addAction(loginPasswordAction, QLineEdit::TrailingPosition);
     connect(loginPasswordAction, &QAction::triggered, this, &LoginDialog::toggleLoginPasswordVisibility);
 
     // 注册页面密码框
     QAction *registerPasswordAction = new QAction(this);
-    registerPasswordAction->setIcon(QIcon(":/image/invisible.svg"));
+    registerPasswordAction->setIcon(QIcon(":/resource/image/password_invisible.svg"));
     ui->reg_password_edit->addAction(registerPasswordAction, QLineEdit::TrailingPosition);
     connect(registerPasswordAction, &QAction::triggered, this, &LoginDialog::toggleRegisterPasswordVisibility);
 
     // 注册页面确认密码框
     QAction *registerConfirmPasswordAction = new QAction(this);
-    registerConfirmPasswordAction->setIcon(QIcon(":/image/invisible.svg"));
+    registerConfirmPasswordAction->setIcon(QIcon(":/resource/image/password_invisible.svg"));
     ui->reg_confirm_password_edit->addAction(registerConfirmPasswordAction, QLineEdit::TrailingPosition);
     connect(registerConfirmPasswordAction, &QAction::triggered, this,
             &LoginDialog::toggleRegisterConfirmPasswordVisibility);
 
     // 重置密码页面新密码框
     QAction *resetPasswordAction = new QAction(this);
-    resetPasswordAction->setIcon(QIcon(":/image/invisible.svg"));
+    resetPasswordAction->setIcon(QIcon(":/resource/image/password_invisible.svg"));
     ui->reset_new_password_edit->addAction(resetPasswordAction, QLineEdit::TrailingPosition);
     connect(resetPasswordAction, &QAction::triggered, this, &LoginDialog::toggleResetPasswordVisibility);
 
     // 重置密码页面确认密码框
     QAction *resetConfirmPasswordAction = new QAction(this);
-    resetConfirmPasswordAction->setIcon(QIcon(":/image/invisible.svg"));
+    resetConfirmPasswordAction->setIcon(QIcon(":/resource/image/password_invisible.svg"));
     ui->reset_confirm_password_edit->addAction(resetConfirmPasswordAction, QLineEdit::TrailingPosition);
     connect(resetConfirmPasswordAction, &QAction::triggered, this,
             &LoginDialog::toggleResetConfirmPasswordVisibility);
@@ -568,7 +577,7 @@ void LoginDialog::toggleLoginPasswordVisibility() {
 
     // 更新图标
     QAction *action = ui->password_edit->actions().last();
-    action->setIcon(QIcon(m_loginPasswordVisible ? ":/image/visible.svg" : ":/image/invisible.svg"));
+    action->setIcon(QIcon(m_loginPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
 }
 
 // 切换注册页面密码显示/隐藏
@@ -580,7 +589,7 @@ void LoginDialog::toggleRegisterPasswordVisibility() {
 
     // 更新图标
     QAction *action = ui->reg_password_edit->actions().last();
-    action->setIcon(QIcon(m_registerPasswordVisible ? ":/image/visible.svg" : ":/image/invisible.svg"));
+    action->setIcon(QIcon(m_registerPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
 }
 
 // 切换注册页面确认密码显示/隐藏
@@ -593,7 +602,7 @@ void LoginDialog::toggleRegisterConfirmPasswordVisibility() {
 
     // 更新图标
     QAction *action = ui->reg_confirm_password_edit->actions().last();
-    action->setIcon(QIcon(m_registerConfirmPasswordVisible ? ":/image/visible.svg" : ":/image/invisible.svg"));
+    action->setIcon(QIcon(m_registerConfirmPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
 }
 
 // 切换重置密码页面新密码显示/隐藏
@@ -605,7 +614,7 @@ void LoginDialog::toggleResetPasswordVisibility() {
 
     // 更新图标
     QAction *action = ui->reset_new_password_edit->actions().last();
-    action->setIcon(QIcon(m_resetPasswordVisible ? ":/image/visible.svg" : ":/image/invisible.svg"));
+    action->setIcon(QIcon(m_resetPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
 }
 
 // 切换重置密码页面确认密码显示/隐藏
@@ -618,5 +627,5 @@ void LoginDialog::toggleResetConfirmPasswordVisibility() {
 
     // 更新图标
     QAction *action = ui->reset_confirm_password_edit->actions().last();
-    action->setIcon(QIcon(m_resetConfirmPasswordVisible ? ":/image/visible.svg" : ":/image/invisible.svg"));
+    action->setIcon(QIcon(m_resetConfirmPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
 }

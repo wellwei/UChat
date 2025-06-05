@@ -1,9 +1,4 @@
-//
-// Created by wellwei on 2025/4/10.
-//
-
-#ifndef GATESERVER_MYSQLCONNPOOL_H
-#define GATESERVER_MYSQLCONNPOOL_H
+#pragma once
 
 #include <queue>
 #include <mysql/jdbc.h>
@@ -19,6 +14,8 @@ public:
 
     void returnConnection(std::unique_ptr<sql::Connection> conn);
 
+    void addConnection();
+
     void close();
 
 private:
@@ -32,6 +29,3 @@ private:
     std::condition_variable _condition;
     std::atomic_bool _stop;
 };
-
-
-#endif //GATESERVER_MYSQLCONNPOOL_H

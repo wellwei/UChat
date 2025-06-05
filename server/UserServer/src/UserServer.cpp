@@ -40,9 +40,8 @@ grpc::Status UserServer::CreateUser(grpc::ServerContext* context, const CreateUs
         return grpc::Status::OK;
     }
 
-    uint64_t uid = 0;
-    auto mysql_mgr = MysqlMgr::getInstance();
-    if (mysql_mgr->createUser(request->username(), request->password(), request->email(), uid)) {
+    const auto mysql_mgr = MysqlMgr::getInstance();
+    if (uint64_t uid = 0; mysql_mgr->createUser(request->username(), request->password(), request->email(), uid)) {
         response->set_success(true);
         response->set_uid(uid);
         LOG_DEBUG("创建用户成功，用户名: {}, uid: {}", request->username(), uid);
@@ -110,6 +109,26 @@ grpc::Status UserServer::UpdateUserProfile(grpc::ServerContext* context, const U
     }
     return grpc::Status::OK;
 }
+
+grpc::Status UserServer::ResetPassword(grpc::ServerContext* context, const ResetPasswordRequest* request, ResetPasswordResponse* response) {
+    LOG_INFO("Received ResetPassword request from {}", context->peer());
+    if (request->email().empty() || request->new_password().empty()) {
+        response->set_success(false);
+        response->set_error_msg("邮箱或新密码不能为空");    
+        return grpc::Status::OK;
+    }
+
+    const auto mysql_mgr = MysqlMgr::getInstance();
+    if (mysql_mgr->resetPassword(request->email(), request->new_password())) {
+        response->set_success(true);
+        LOG_DEBUG("密码重置成功，邮箱: {}", request->email());
+    } else {
+        response->set_success(false);
+        response->set_error_msg("密码重置失败");
+        LOG_ERROR("密码重置失败，邮箱: {}", request->email());
+    }
+    return grpc::Status::OK;
+}   
 
 void UserServer::start() {
     auto config = *ConfigMgr::getInstance();

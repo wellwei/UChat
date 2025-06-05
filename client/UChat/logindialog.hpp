@@ -8,7 +8,6 @@
 namespace Ui {
 class LoginDialog;
 }
-class MainWindow;
 class QLineEdit;
 class QLabel;
 class QJsonObject;
@@ -25,7 +24,7 @@ public:
     void initHttpHandlers();
 
 signals:
-    void loginSuccess(const QString &username);
+    void loginSuccess(const ServerInfo &serverInfo);
 
 private slots:
     // 登录页面槽函数
@@ -65,7 +64,6 @@ private:
 private:
     Ui::LoginDialog *ui;
     QMap<ReqId, std::function<void(const QJsonObject&)>> _handlers;
-    MainWindow *mainWindow;
 
     // 密码可见性状态
     bool m_loginPasswordVisible = false;

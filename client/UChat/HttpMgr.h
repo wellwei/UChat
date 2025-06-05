@@ -8,6 +8,8 @@
 #include "global.h"
 #include "Singleton.h"
 
+#include <QNetworkAccessManager>
+
 class HttpMgr : public QObject, public Singleton<HttpMgr>, public std::enable_shared_from_this<HttpMgr>
 {
     Q_OBJECT
@@ -31,6 +33,8 @@ public:
 
     void getPasswordResetCode(const QString &email);
 
+    void getChatServer(const uint64_t &uid, const QString &token);
+
 private:
     friend class Singleton<HttpMgr>;
     HttpMgr();
@@ -42,6 +46,7 @@ signals:
     void sig_reg_mod_finish(ReqId id, const QString& res, ErrorCodes err);
     void sig_login_finish(ReqId id, const QString& res, ErrorCodes err);
     void sig_reset_mod_finish(ReqId id, const QString& res, ErrorCodes err);
+    void sig_chat_mod_finish(ReqId id, const QString& res, ErrorCodes err);
 
 private slots:
     void slot_http_finish(ReqId id, const QString& res, ErrorCodes err, Modules module);

@@ -1,11 +1,20 @@
 <RCC>
     <qresource prefix="/">
-        <file>image/uchat.ico</file>
-        <file>image/Uchat_login.png</file>
-        <file>style/logindialog.qss</file>
-        <file>style/mainwindow.qss</file>
+        <file>resource/image/uchat_login.png</file>
+        <file>resource/image/chat-message-pressed.svg</file>
+        <file>resource/image/chat-message.svg</file>
+        <file>resource/image/password_invisible.svg</file>
+        <file>resource/image/password_visible.svg</file>
+        <file>resource/image/uchat.ico</file>
         <file>config/config.ini</file>
-        <file>image/invisible.svg</file>
-        <file>image/visible.svg</file>
+        <file>resource/style/logindialog.qss</file>
+        <file>resource/style/mainwindow.qss</file>
+        <file>resource/image/contacter-pressed.svg</file>
+        <file>resource/image/contacter.svg</file>
+        <file>resource/image/setting-pressed.svg</file>
+        <file>resource/image/setting.svg</file>
+        <file>resource/image/user-add-pressed.svg</file>
+        <file>resource/image/user-add.svg</file>
+        <file>resource/image/search.svg</file>
     </qresource>
 </RCC>

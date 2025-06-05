@@ -6,22 +6,6 @@
 #define UCHAT_GLOBAL_H
 
 #include <QWidget>
-#include <functional>
-#include <QStyle>
-#include <QNetworkAccessManager>
-#include <QString>
-#include <QUrl>
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <memory>
-#include <QNetworkReply>
-#include <QDebug>
-#include <QRegularExpression>
-#include <QTimer>
-#include <QFile>
-#include <QDir>
-#include <QSettings>
 
 extern std::function<void(QWidget *)> repolish;
 
@@ -34,7 +18,8 @@ enum ReqId {
     ID_REGISTER = 1002,
     ID_LOGIN = 1003,
     ID_FORGET_PWD_REQUEST_CODE = 1004,
-    ID_RESET_PASSWORD = 1005
+    ID_RESET_PASSWORD = 1005,
+    ID_GET_CHAT_SERVER = 1006,
 };
 
 // 错误码
@@ -90,10 +75,12 @@ enum Modules {
     REGISTERMOD = 0,
     LOGINMOD = 1,
     RESETMOD = 2,
+    CHATMOD = 3
 };
 
 struct ServerInfo {
     QString host;
+    QString port;
     QString token;
     int uid;
 };

@@ -3,7 +3,6 @@
 #include <string>
 #include <jwt-cpp/jwt.h>
 #include "Singleton.h"
-#include "Logger.h"
 
 class Auth : public Singleton<Auth> {
     friend class Singleton<Auth>;
@@ -16,6 +15,6 @@ public:
 private:
     Auth();
     std::string secret_key; 
-    std::chrono::seconds token_expiration;
+    std::chrono::seconds token_expiration{};
 };
 

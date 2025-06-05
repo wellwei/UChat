@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(uchat-user-service)
+project(UserServer)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,7 +57,7 @@ target_include_directories(proto_lib PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-add_executable(UserService
+add_executable(UserServer
         main.cpp
         src/MysqlMgr.cpp
         src/MysqlMgr.h
@@ -78,7 +78,7 @@ add_executable(UserService
         src/RedisMgr.h
 )
 
-target_link_libraries(UserService PUBLIC
+target_link_libraries(UserServer PUBLIC
         proto_lib
         gRPC::grpc++
         gRPC::grpc++_reflection
@@ -90,7 +90,7 @@ target_link_libraries(UserService PUBLIC
         redis++::redis++_static
 )
 
-target_include_directories(UserService PUBLIC
+target_include_directories(UserServer PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}
 )

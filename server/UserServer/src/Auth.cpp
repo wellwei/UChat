@@ -2,6 +2,7 @@
 #include "ConfigMgr.h"
 #include <jwt-cpp/jwt.h>
 #include <chrono>
+#include "Logger.h"
 
 Auth::Auth() {
     auto config = *ConfigMgr::getInstance();
@@ -9,8 +10,8 @@ Auth::Auth() {
     token_expiration = std::chrono::seconds(std::stoul(config["JWT"]["expiration"]));
 }
 
-std::string Auth::generateToken(uint64_t uid) {
-    auto algorithm = jwt::algorithm::hs256(secret_key);
+std::string Auth::generateToken(const uint64_t uid) {
+    const auto algorithm = jwt::algorithm::hs256(secret_key);
     auto token = jwt::create()
         .set_type("JWT")
         .set_issuer("UserService")
@@ -24,8 +25,8 @@ std::string Auth::generateToken(uint64_t uid) {
 
 bool Auth::verifyToken(const std::string& token, uint64_t& uid) {
     try {
-        auto decoded = jwt::decode(token);
-        auto verifier = jwt::verify()
+        const auto decoded = jwt::decode(token);
+        const auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256(secret_key))
             .with_issuer("UserService");
         verifier.verify(decoded);

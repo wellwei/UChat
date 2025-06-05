@@ -244,8 +244,7 @@ bool MysqlMgr::getUserProfile(uint64_t uid, UserProfile& user_profile) {
     auto redis_mgr = RedisMgr::getInstance();  
     auto cache_key = getUserProfileCacheKey(uid);
 
-    auto cache_value = redis_mgr->get(cache_key);
-    if (cache_value) {
+    if (const auto cache_value = redis_mgr->get(cache_key)) {
         LOG_DEBUG("缓存命中, 从缓存中获取用户信息");
         if (user_profile.ParseFromString(cache_value.value())) {
             LOG_DEBUG("MysqlMgr::getUserProfile() 从缓存中获取用户信息成功");
@@ -350,5 +349,77 @@ bool MysqlMgr::updateUserProfile(uint64_t uid, const UserProfile& user_profile) 
     } catch (sql::SQLException& e) {
         LOG_ERROR("MysqlMgr::updateUserProfile() 更新失败: {}", e.what());
         return false;
+    }
+}
+
+// 重置密码 
+bool MysqlMgr::resetPassword(const std::string& email, const std::string& new_password) {
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::resetPassword() 获取数据库连接失败");
+        return false;
+    }
+    Defer defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+    try {
+        std::string hashed_password = HashedPassword(new_password);
+        std::string query = "UPDATE users SET password = ? WHERE email = ?";
+        auto stmt = conn->prepareStatement(query);
+        stmt->setString(1, hashed_password);
+        stmt->setString(2, email);
+        stmt->executeUpdate();
+        return true;
+    } catch (sql::SQLException& e) {
+        LOG_ERROR("MysqlMgr::resetPassword() 更新失败: {}", e.what());
+        return false;
+    }
+}           
+
+// 将mysql结果集转换为UserProfile
+bool MysqlMgr::fromMysqlResult(const sql::ResultSet* rs, UserProfile& user_profile) {
+    if (!rs) {
+        return false;
+    }
+    try {
+        user_profile.set_uid(rs->getUInt64("uid"));
+        if (!rs->isNull("username")) {
+            user_profile.set_username(rs->getString("username"));
+        } else {
+            LOG_WARN("数据库中 uid={} 的 username 为 NULL", user_profile.uid());
+        }
+        if (!rs->isNull("nickname")) user_profile.set_nickname(rs->getString("nickname"));
+        if (!rs->isNull("avatar_url")) user_profile.set_avatar_url(rs->getString("avatar_url"));
+        if (!rs->isNull("email")) user_profile.set_email(rs->getString("email"));
+        if (!rs->isNull("phone")) user_profile.set_phone(rs->getString("phone"));
+        if (!rs->isNull("gender")) user_profile.set_gender(static_cast<UserGender>(rs->getInt("gender")));
+        if (!rs->isNull("signature")) user_profile.set_signature(rs->getString("signature"));
+        if (!rs->isNull("location")) user_profile.set_location(rs->getString("location"));
+        if (!rs->isNull("status")) {
+             user_profile.set_status(static_cast<UserStatus>(rs->getInt("status")));
+        } else {
+             user_profile.set_status(UserStatus::OFFLINE);
+             LOG_WARN("数据库中 uid={} 的 status 为 NULL", user_profile.uid());
+        }
+        if (!rs->isNull("create_time")) {
+             user_profile.set_create_time(rs->getString("create_time"));
+        }
+         if (!rs->isNull("update_time")) {
+             user_profile.set_update_time(rs->getString("update_time"));
+        }
+        return true;
+    } catch (sql::SQLException& e) {
+        uint64_t failed_uid = 0;
+        try {
+            if (!rs->isNull("uid")) failed_uid = rs->getUInt64("uid");
+        } catch (...) {}
+        LOG_ERROR("Mysql 结果解析失败 (可能在处理 uid={}): {}", failed_uid, e.what());
+        return false;
+    } catch (std::exception& e) {
+         LOG_ERROR("结果解析时发生标准异常: {}", e.what());
+         return false;
+    } catch (...) {
+         LOG_ERROR("结果解析时发生未知异常");
+         return false;
     }
 }

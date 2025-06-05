@@ -25,7 +25,7 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="mainLayout">
     <property name="spacing">
-     <number>0</number> <!-- 主布局无间距 -->
+     <number>0</number>
     </property>
     <property name="leftMargin">
      <number>0</number>
@@ -40,305 +40,275 @@
      <number>0</number>
     </property>
     <item>
-     <!-- ==================== 左侧导航栏 ==================== -->
-     <widget class="QWidget" name="sidebarWidget">
-      <property name="minimumSize">
-       <size>
-        <width>60</width>
-        <height>0</height>
-       </size>
+     <layout class="QVBoxLayout" name="sidebarLayout">
+      <property name="spacing">
+       <number>10</number>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>60</width>
-        <height>16777215</height>
-       </size>
+      <property name="leftMargin">
+       <number>5</number>
       </property>
-      <property name="styleSheet">
-       <string notr="true">/* Sidebar 专属样式 */
-        QWidget#sidebarWidget {
-        background-color: #E8E8E8; /* 浅灰色背景 (亮色主题) */
-        /* 暗色主题: background-color: #2E2E2E; */
-        }</string>
+      <property name="topMargin">
+       <number>15</number>
       </property>
-      <layout class="QVBoxLayout" name="sidebarLayout">
-       <property name="spacing">
-        <number>10</number>
-       </property>
-       <property name="leftMargin">
-        <number>5</number>
-       </property>
-       <property name="topMargin">
-        <number>15</number>
-       </property>
-       <property name="rightMargin">
-        <number>5</number>
-       </property>
-       <property name="bottomMargin">
-        <number>10</number>
-       </property>
-       <item>
-        <!-- 用户头像 -->
-        <widget class="QLabel" name="avatarLabel">
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QLabel#avatarLabel {
+      <property name="rightMargin">
+       <number>5</number>
+      </property>
+      <property name="bottomMargin">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="avatarLabel">
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel#avatarLabel {
            border-radius: 20px; /* 圆形 */
            background-color: #CCCCCC; /* 占位符颜色 */
            /* border: 1px solid #B0B0B0; */ /* 可选边框 */
            }</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="pixmap">
-          <pixmap resource="resource.qrc">:/avatars/default_avatar.png</pixmap> <!-- 替换为你的资源 -->
-         </property>
-         <property name="scaledContents">
-          <bool>true</bool>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <!-- 聊天图标按钮 -->
-        <widget class="QToolButton" name="chatNavButton">
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="toolTip">
-          <string>聊天</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/icons/chat.png</normaloff>:/icons/chat.png</iconset> <!-- 替换为你的资源 -->
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>28</width>
-           <height>28</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool> <!-- 可选中状态 -->
-         </property>
-         <property name="checked">
-          <bool>true</bool> <!-- 默认选中 -->
-         </property>
-         <property name="autoExclusive">
-          <bool>true</bool> <!-- 按钮组互斥 -->
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonIconOnly</enum>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">navigationGroup</string> <!-- 加入按钮组 -->
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <!-- 联系人图标按钮 -->
-        <widget class="QToolButton" name="contactsNavButton">
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="toolTip">
-          <string>联系人</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/icons/contacts.png</normaloff>:/icons/contacts.png</iconset> <!-- 替换为你的资源 -->
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>28</width>
-           <height>28</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="autoExclusive">
-          <bool>true</bool>
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonIconOnly</enum>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">navigationGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <!-- 群组图标按钮 (可选) -->
-        <widget class="QToolButton" name="groupsNavButton">
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="toolTip">
-          <string>群组</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/icons/groups.png</normaloff>:/icons/groups.png</iconset> <!-- 替换为你的资源 -->
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>28</width>
-           <height>28</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="autoExclusive">
-          <bool>true</bool>
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonIconOnly</enum>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">navigationGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <!-- 占位符，将底部按钮推到底部 -->
-        <spacer name="sidebarSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <!-- 设置图标按钮 -->
-        <widget class="QToolButton" name="settingsNavButton">
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="toolTip">
-          <string>设置</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/icons/settings.png</normaloff>:/icons/settings.png</iconset> <!-- 替换为你的资源 -->
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>24</width>
-           <height>24</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool> <!-- 也可作为导航项 -->
-         </property>
-         <property name="autoExclusive">
-          <bool>true</bool>
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonIconOnly</enum>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">navigationGroup</string>
-         </attribute>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap>:/avatars/default_avatar.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="chatNavButton">
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>聊天</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/icons/chat.png</normaloff>:/icons/chat.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>28</width>
+          <height>28</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">navigationGroup</string>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="contactsNavButton">
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>联系人</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/icons/contacts.png</normaloff>:/icons/contacts.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>28</width>
+          <height>28</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">navigationGroup</string>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="groupsNavButton">
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>群组</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/icons/groups.png</normaloff>:/icons/groups.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>28</width>
+          <height>28</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">navigationGroup</string>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <spacer name="sidebarSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QToolButton" name="settingsNavButton">
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>设置</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/icons/settings.png</normaloff>:/icons/settings.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">navigationGroup</string>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
-     <!-- ==================== 内容区域 ==================== -->
      <widget class="QStackedWidget" name="centralStackedWidget">
       <property name="styleSheet">
        <string notr="true">/* StackedWidget 背景透明，由页面控制 */
         QStackedWidget { background-color: transparent; }</string>
       </property>
       <property name="currentIndex">
-       <number>0</number> <!-- 默认显示聊天页面 -->
+       <number>0</number>
       </property>
-      <!-- 页面1: 聊天 -->
       <widget class="QWidget" name="chatPage">
        <property name="styleSheet">
         <string notr="true">QWidget#chatPage { background-color: palette(window); } /* 跟随系统窗口背景 */</string>
@@ -362,21 +332,21 @@
         <item>
          <widget class="QSplitter" name="chatSplitter">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="handleWidth">
-           <number>1</number> <!-- 细分割线 -->
+           <number>1</number>
           </property>
           <widget class="QWidget" name="conversationListWidgetContainer">
            <property name="minimumSize">
             <size>
-             <width>220</width> <!-- 会话列表最小宽度 -->
+             <width>220</width>
              <height>0</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>350</width> <!-- 会话列表最大宽度 -->
+             <width>350</width>
              <height>16777215</height>
             </size>
            </property>
@@ -404,7 +374,6 @@
              <number>0</number>
             </property>
             <item>
-             <!-- 会话搜索框 -->
              <widget class="QLineEdit" name="searchConversationsLineEdit">
               <property name="minimumSize">
                <size>
@@ -412,19 +381,18 @@
                 <height>30</height>
                </size>
               </property>
+              <property name="styleSheet">
+               <string notr="true">QLineEdit { padding-left: 8px; border: none; background-color: #FFFFFF; /* 暗色: #404040 */ margin: 5px; border-radius: 4px; }</string>
+              </property>
               <property name="placeholderText">
                <string>搜索</string>
               </property>
               <property name="clearButtonEnabled">
                <bool>true</bool>
               </property>
-              <property name="styleSheet">
-               <string notr="true">QLineEdit { padding-left: 8px; border: none; background-color: #FFFFFF; /* 暗色: #404040 */ margin: 5px; border-radius: 4px; }</string>
-              </property>
              </widget>
             </item>
             <item>
-             <!-- 会话列表 -->
              <widget class="QListWidget" name="conversationsListWidget">
               <property name="styleSheet">
                <string notr="true">QListWidget { border: none; background-color: transparent; }
@@ -433,13 +401,13 @@
                 QListWidget::item:hover { background-color: #E8F0FF; /* 暗色: #404854 */ }</string>
               </property>
               <property name="horizontalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
+               <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
               </property>
               <property name="autoScroll">
                <bool>false</bool>
               </property>
               <property name="spacing">
-               <number>0</number> <!-- Item 间距由 border-bottom 控制 -->
+               <number>0</number>
               </property>
              </widget>
             </item>
@@ -463,7 +431,6 @@
              <number>0</number>
             </property>
             <item>
-             <!-- 聊天对象标题栏 (可选) -->
              <widget class="QWidget" name="chatTitleWidget" native="true">
               <property name="minimumSize">
                <size>
@@ -497,7 +464,7 @@
                <item>
                 <spacer name="horizontalSpacer">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Orientation::Horizontal</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
@@ -507,30 +474,28 @@
                  </property>
                 </spacer>
                </item>
-               <!-- 可在此处添加更多标题栏按钮 -->
               </layout>
              </widget>
             </item>
             <item>
-             <!-- 消息显示区域 -->
              <widget class="QTextBrowser" name="messageDisplayBrowser">
               <property name="styleSheet">
                <string notr="true">QTextBrowser { border: none; background-color: transparent; padding: 10px; } </string>
               </property>
               <property name="html">
                <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-                &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-                p, li { white-space: pre-wrap; }
-                hr { height: 1px; border-width: 0; }
-                li.unchecked::marker { content: &quot;\2610&quot;; }
-                li.checked::marker { content: &quot;\2612&quot;; }
-                &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Microsoft YaHei'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
-                &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;消息记录...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei'; font-size:10pt;&quot;&gt;                &lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei'; font-size:10pt;&quot;&gt;消息记录...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
              </widget>
             </item>
             <item>
-             <!-- 聊天工具栏 -->
              <widget class="QWidget" name="chatToolbarWidget" native="true">
               <property name="minimumSize">
                <size>
@@ -566,8 +531,8 @@
                   <string>...</string>
                  </property>
                  <property name="icon">
-                  <iconset resource="resource.qrc">
-                   <normaloff>:/icons/emoji.png</normaloff>:/icons/emoji.png</iconset> <!-- 替换 -->
+                  <iconset>
+                   <normaloff>:/icons/emoji.png</normaloff>:/icons/emoji.png</iconset>
                  </property>
                  <property name="iconSize">
                   <size>
@@ -589,8 +554,8 @@
                   <string>...</string>
                  </property>
                  <property name="icon">
-                  <iconset resource="resource.qrc">
-                   <normaloff>:/icons/file.png</normaloff>:/icons/file.png</iconset> <!-- 替换 -->
+                  <iconset>
+                   <normaloff>:/icons/file.png</normaloff>:/icons/file.png</iconset>
                  </property>
                  <property name="iconSize">
                   <size>
@@ -612,8 +577,8 @@
                   <string>...</string>
                  </property>
                  <property name="icon">
-                  <iconset resource="resource.qrc">
-                   <normaloff>:/icons/screenshot.png</normaloff>:/icons/screenshot.png</iconset> <!-- 替换 -->
+                  <iconset>
+                   <normaloff>:/icons/screenshot.png</normaloff>:/icons/screenshot.png</iconset>
                  </property>
                  <property name="iconSize">
                   <size>
@@ -629,7 +594,7 @@
                <item>
                 <spacer name="horizontalSpacer_2">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Orientation::Horizontal</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
@@ -639,23 +604,21 @@
                  </property>
                 </spacer>
                </item>
-               <!-- 可添加更多工具按钮 -->
               </layout>
              </widget>
             </item>
             <item>
-             <!-- 消息输入区域 -->
              <widget class="QTextEdit" name="messageInputEdit">
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>80</height> <!-- 输入框最小高度 -->
+                <height>80</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
                 <width>16777215</width>
-                <height>150</height> <!-- 输入框最大高度 -->
+                <height>150</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -667,7 +630,6 @@
              </widget>
             </item>
             <item>
-             <!-- 发送按钮区域 -->
              <widget class="QWidget" name="sendButtonWidget" native="true">
               <property name="minimumSize">
                <size>
@@ -688,7 +650,7 @@
                <item>
                 <spacer name="horizontalSpacer_3">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Orientation::Horizontal</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
@@ -726,7 +688,6 @@
         </item>
        </layout>
       </widget>
-      <!-- 页面2: 联系人 -->
       <widget class="QWidget" name="contactsPage">
        <property name="styleSheet">
         <string notr="true">QWidget#contactsPage { background-color: palette(window); }</string>
@@ -748,7 +709,6 @@
          <number>0</number>
         </property>
         <item>
-         <!-- 联系人搜索框 -->
          <widget class="QLineEdit" name="searchContactsLineEdit">
           <property name="minimumSize">
            <size>
@@ -756,19 +716,18 @@
             <height>35</height>
            </size>
           </property>
+          <property name="styleSheet">
+           <string notr="true">QLineEdit { padding-left: 10px; border: none; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ background-color: transparent; margin: 5px 10px; }</string>
+          </property>
           <property name="placeholderText">
            <string>搜索联系人</string>
           </property>
           <property name="clearButtonEnabled">
            <bool>true</bool>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QLineEdit { padding-left: 10px; border: none; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ background-color: transparent; margin: 5px 10px; }</string>
-          </property>
          </widget>
         </item>
         <item>
-         <!-- 联系人列表 (使用 QTreeView 以便分组) -->
          <widget class="QTreeView" name="contactsTreeView">
           <property name="styleSheet">
            <string notr="true">QTreeView { border: none; background-color: transparent; }
@@ -778,31 +737,30 @@
             QHeaderView::section { background-color: #F8F8F8; /* 暗色: #383838 */ padding: 4px; border: none; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ } </string>
           </property>
           <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
+           <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
           </property>
           <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
           </property>
           <property name="alternatingRowColors">
-           <bool>false</bool> <!-- 通常不需要交替色 -->
+           <bool>false</bool>
           </property>
           <property name="indentation">
-           <number>15</number> <!-- 分组缩进 -->
+           <number>15</number>
           </property>
           <property name="rootIsDecorated">
-           <bool>false</bool> <!-- 是否显示根节点箭头 -->
+           <bool>false</bool>
           </property>
           <property name="itemsExpandable">
-           <bool>true</bool> <!-- 允许展开/折叠 -->
+           <bool>true</bool>
           </property>
           <property name="headerHidden">
-           <bool>true</bool> <!-- 隐藏默认表头 -->
+           <bool>true</bool>
           </property>
          </widget>
         </item>
        </layout>
       </widget>
-      <!-- 页面3: 群组 (结构类似联系人) -->
       <widget class="QWidget" name="groupsPage">
        <property name="styleSheet">
         <string notr="true">QWidget#groupsPage { background-color: palette(window); }</string>
@@ -831,19 +789,19 @@
             <height>35</height>
            </size>
           </property>
+          <property name="styleSheet">
+           <string notr="true">QLineEdit { padding-left: 10px; border: none; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ background-color: transparent; margin: 5px 10px; }</string>
+          </property>
           <property name="placeholderText">
            <string>搜索群组</string>
           </property>
           <property name="clearButtonEnabled">
            <bool>true</bool>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QLineEdit { padding-left: 10px; border: none; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ background-color: transparent; margin: 5px 10px; }</string>
-          </property>
          </widget>
         </item>
         <item>
-         <widget class="QListWidget" name="groupsListWidget"> <!-- 或 QTreeView -->
+         <widget class="QListWidget" name="groupsListWidget">
           <property name="styleSheet">
            <string notr="true">QListWidget { border: none; background-color: transparent; }
             QListWidget::item { padding: 8px 10px; border-bottom: 1px solid #E0E0E0; /* 暗色: #404040 */ }
@@ -851,7 +809,7 @@
             QListWidget::item:hover { background-color: #E8F0FF; /* 暗色: #404854 */ }</string>
           </property>
           <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
+           <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
           </property>
           <property name="spacing">
            <number>0</number>
@@ -860,7 +818,6 @@
         </item>
        </layout>
       </widget>
-      <!-- 页面4: 设置 (占位) -->
       <widget class="QWidget" name="settingsPage">
        <property name="styleSheet">
         <string notr="true">QWidget#settingsPage { background-color: palette(window); }</string>
@@ -872,7 +829,7 @@
            <string>设置页面</string>
           </property>
           <property name="alignment">
-           <set>Qt::AlignCenter</set>
+           <set>Qt::AlignmentFlag::AlignCenter</set>
           </property>
          </widget>
         </item>
@@ -883,15 +840,10 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <!-- 可选: 添加菜单栏 QMenuBar -->
  </widget>
- <customwidgets>
- </customwidgets>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="navigationGroup"/> <!-- 定义按钮组 -->
+  <buttongroup name="navigationGroup"/>
  </buttongroups>
 </ui>

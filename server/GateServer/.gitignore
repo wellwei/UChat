@@ -1,4 +1,6 @@
 cmake-build-debug/
-generated/
+generated/*
 build/
 vcpkg_installed/
+
+proto_generated/*

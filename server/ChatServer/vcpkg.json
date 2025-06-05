@@ -1,0 +1,12 @@
+{
+    "name": "uchat-chat-server",
+    "version": "0.0.1",
+    "dependencies": [
+        "spdlog",
+        "nlohmann-json",
+        "jwt-cpp",
+        "boost-asio",
+        "boost-uuid",
+        "grpc"
+    ]
+}

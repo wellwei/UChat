@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service InterChatService {
+    // 双向流 RPC：用于ChatServer 之间转发消息
+    rpc ForwardMessage(stream ForwardedMessage) returns (stream ForwardedMessage);
+}
+
+message ForwardedMessage {
+    string message_id = 1;
+    string original_sender_id = 2;   // 发送者 uid
+    string target_recipient_id = 3; // 接收者 uid
+    string content = 4;              // 消息内容
+    string timestamp = 5;            // 消息时间戳
+}

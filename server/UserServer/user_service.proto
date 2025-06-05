@@ -2,8 +2,8 @@ syntax = "proto3";
 
 
 enum UserStatus {
-    ONLINE = 0;
-    OFFLINE = 1;
+    OFFLINE = 0;
+    ONLINE = 1;
     BUSY = 2;
     AWAY = 3;
     INVISIBLE = 4;
@@ -77,6 +77,16 @@ message UpdateUserProfileResponse {
     UserProfile user_profile = 3;
 }
 
+message ResetPasswordRequest {
+    string email = 1;
+    string new_password = 2;
+}
+
+message ResetPasswordResponse {
+    bool success = 1;
+    string error_msg = 2;
+}
+
 // 用户服务
 service UserService {
     // 验证用户凭证
@@ -90,4 +100,7 @@ service UserService {
 
     // 更新用户资料
     rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse) {}
+
+    // 重置密码
+    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {}
 }

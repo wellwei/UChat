@@ -17,19 +17,23 @@ service VerifyService {
 
 // Status Server
 
-message StatusRequest {
+message GetChatServerRequest {
   uint64 uid = 1;
 }
 
-message StatusResponse {
-  int32 code = 1;
-  string message = 2;
+message GetChatServerResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    NO_SERVER_AVAILABLE = 2;  // 没有可用的ChatServer
+    INTERNAL_ERROR = 3;      // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
   string host = 3;
   string port = 4;
-  string token = 5;
-  string expire_time = 6;
 }
 
 service StatusService {
-  rpc GetStatus (StatusRequest) returns (StatusResponse) {}
+  rpc GetChatServer (GetChatServerRequest) returns (GetChatServerResponse) {}
 }

@@ -1,0 +1,52 @@
+[
+    {
+        "type": "auth_req",
+        "data": {
+            "uid": 123456,
+            "token": "your_auth_token_here"
+        }
+    },
+    {
+        "type": "auth_resp",
+        "code": 0,
+        "message": "Authentication successful",
+        "data": {}
+    },
+    {
+        "type": "heartbead_req",
+        "data": {}
+    },
+    {
+        "type": "heartbeat_resp",
+        "code": 0,
+        "message": "Pong"
+    },
+    {
+        "type": "send_msg_req",
+        "data": {
+            "msg_id": 123456,
+            "to_uid": 654321,
+            "msg_type": "text",
+            "content": "Hello, how are you?"
+        }
+    },
+    {
+        "type": "send_msg_resp",
+        "code": 0,
+        "message": "Message received by server",
+        "data": {
+            "msg_id": 123456
+        }
+    },
+    {
+        "type": "recv_msg_push",
+        "code": 0,
+        "message": "New message received",
+        "data": {
+            "msg_id": 123456,
+            "from_uid": 654321,
+            "msg_type": "text",
+            "content": "Hello, how are you?"
+        }
+    }
+]

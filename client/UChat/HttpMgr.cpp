@@ -4,6 +4,9 @@
  */
 
 #include "HttpMgr.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkReply>
 
 HttpMgr::HttpMgr() {
     // 连接 http 请求和完成信号，信号槽机制保证队列消费
@@ -105,6 +108,15 @@ void HttpMgr::getPasswordResetCode(const QString &email) {
     PostHttpReq(url, jsonObj, ReqId::ID_FORGET_PWD_REQUEST_CODE, Modules::RESETMOD);
 }
 
+void HttpMgr::getChatServer(const uint64_t &uid, const QString &token) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+
+    QUrl url(GATE_SERVER_URL + "/get_chat_server");
+    PostHttpReq(url, jsonObj, ReqId::ID_GET_CHAT_SERVER, Modules::CHATMOD);
+}
+
 void HttpMgr::slot_http_finish(ReqId id, const QString &res, ErrorCodes err, Modules module) {
     if (module == Modules::REGISTERMOD) {
         emit sig_reg_mod_finish(id, res, err);
@@ -112,5 +124,7 @@ void HttpMgr::slot_http_finish(ReqId id, const QString &res, ErrorCodes err, Mod
         emit sig_login_finish(id, res, err);
     } else if (module == Modules::RESETMOD) {
         emit sig_reset_mod_finish(id, res, err);
+    } else if (module == Modules::CHATMOD) {
+        emit sig_chat_mod_finish(id, res, err);
     }
 }

@@ -3,7 +3,6 @@
 
 build/
 
-proto_generated/*.h
-proto_generated/*.cc
+proto_generated/*
 
 vcpkg_installed/

@@ -16,14 +16,14 @@ StatusGrpcClient::~StatusGrpcClient() {
     _stub->close();
 }
 
-StatusResponse StatusGrpcClient::getStatus(int uid) {
-    StatusRequest request;
-    StatusResponse reply;
+GetChatServerResponse StatusGrpcClient::getChatServer(const uint64_t &uid) {
+    GetChatServerRequest request;
+    GetChatServerResponse reply;
     ClientContext context;
 
     request.set_uid(uid);
     auto stub = _stub->getStub();
-    Status status = stub->GetStatus(&context, request, &reply);
+    const Status status = stub->GetChatServer(&context, request, &reply);
     _stub->returnStub(std::move(stub));
     if (status.ok()) {
         return reply;

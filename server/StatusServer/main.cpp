@@ -1,9 +1,15 @@
 #include <iostream>
-#include <mysql/jdbc.h>
-#include <grpcpp/grpcpp.h>
-#include <nlohmann/json.hpp>
+#include "StatusServer.h"
+#include "ConfigMgr.h"
+#include "Logger.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    Logger::init();
+
+    ConfigMgr::getInstance();
+
+    StatusServer status_server;
+    status_server.start();
+
     return 0;
 }

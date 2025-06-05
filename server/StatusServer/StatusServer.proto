@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+service StatusService {
+  // GateServer 获取ChatServer
+  rpc GetChatServer(GetChatServerRequest) returns (GetChatServerResponse);
+
+  // ChatServer 实例注册
+  rpc RegisterChatServer(RegisterChatServerRequest) returns (RegisterChatServerResponse); 
+
+  // ChatServer 心跳
+  rpc ChatServerHeartbeat(ChatServerHeartbeatRequest) returns (ChatServerHeartbeatResponse);
+
+  // ChatServer 关闭
+  rpc UnregisterChatServer(UnregisterChatServerRequest) returns (UnregisterChatServerResponse);
+
+  // 用户上线状态更新, 将用户上线状态更新到StatusServer
+  rpc UserOnlineStatusUpdate(UserOnlineStatusUpdateRequest) returns (UserOnlineStatusUpdateResponse);
+
+  // 获取 uid 所在 ChatServer
+  rpc GetUidChatServer(GetUidChatServerRequest) returns (GetUidChatServerResponse);
+}
+
+message GetChatServerRequest {
+  uint64 uid = 1;
+}
+
+message GetChatServerResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    NO_SERVER_AVAILABLE = 2;  // 没有可用的ChatServer
+    INTERNAL_ERROR = 3;      // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+  string host = 3;
+  string port = 4;
+} 
+
+message RegisterChatServerRequest {
+  string server_id = 1;
+  string host = 2;
+  string port = 3;
+}
+
+message RegisterChatServerResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    ALREADY_REGISTERED = 2;  // 已经注册
+    INVALID_REQUEST = 3;    // 无效请求
+    INTERNAL_ERROR = 4;    // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+}
+
+message ChatServerHeartbeatRequest {
+  string server_id = 1;
+  uint64 current_connections = 2;
+}
+
+message ChatServerHeartbeatResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    UNKNOWN_SERVER = 2;  // 未知的服务器
+    INTERNAL_ERROR = 3; // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+}
+
+message UnregisterChatServerRequest {
+  string server_id = 1;
+}
+
+message UnregisterChatServerResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1; 
+    UNKNOWN_SERVER = 2;  // 未知的服务器
+    INTERNAL_ERROR = 3; // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+}
+
+message UserOnlineStatusUpdateRequest {
+  uint64 uid = 1;
+  string server_id = 2;
+  bool online = 3;  // true: 上线, false: 下线
+}
+
+message UserOnlineStatusUpdateResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    INTERNAL_ERROR = 2; // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+}
+
+// 获取 uid 所在 ChatServer
+message GetUidChatServerRequest {
+  uint64 uid = 1;
+}
+
+message GetUidChatServerResponse {
+  enum Code {
+    NET_ERROR = 0;
+    OK = 1;
+    USER_OFFLINE = 2;  // 用户离线
+    INTERNAL_ERROR = 3;      // 内部错误
+  }
+  Code code = 1;
+  string error_msg = 2;
+  string host = 3;
+  string port = 4;
+}

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
+
 project(GateServer)
 
 set(CMAKE_CXX_STANDARD 14)
-
-cmake_policy(SET CMP0167 NEW)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS beast asio filesystem)
@@ -13,6 +13,7 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(redis++ CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(unofficial-mysql-connector-cpp CONFIG REQUIRED)
+find_package(jwt-cpp CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
@@ -92,6 +93,8 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/StatusGrpcClient.h
         src/models/UserInfo.cpp
         src/models/UserInfo.h
+        src/UserServiceClient.cpp
+        src/UserServiceClient.h
 )
 
 target_include_directories(GateServerLib PUBLIC
@@ -107,6 +110,7 @@ target_link_libraries(GateServerLib PUBLIC
         spdlog::spdlog
         unofficial::libmysql::libmysql
         unofficial::mysql-connector-cpp::connector-jdbc
+        jwt-cpp::jwt-cpp
 )
 
 # 主程序

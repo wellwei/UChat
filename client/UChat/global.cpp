@@ -3,6 +3,7 @@
 //
 
 #include "global.h"
+#include <QStyle>
 
 QString GATE_SERVER_URL = "";
 

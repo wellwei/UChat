@@ -62,3 +62,7 @@ void MysqlConnPool::close() {
     _stop = true;
     _condition.notify_all();
 }
+
+void MysqlConnPool::addConnection() {
+
+}

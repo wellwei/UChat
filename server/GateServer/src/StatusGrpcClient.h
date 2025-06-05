@@ -12,8 +12,8 @@
 using grpc::Channel;
 using grpc::Status;
 using grpc::ClientContext;
-using message::StatusRequest;
-using message::StatusResponse;
+using message::GetChatServerRequest;
+using message::GetChatServerResponse;
 using message::StatusService;
 
 class StatusGrpcClient : public Singleton<StatusGrpcClient> {
@@ -22,7 +22,7 @@ class StatusGrpcClient : public Singleton<StatusGrpcClient> {
 public:
     ~StatusGrpcClient();
 
-    StatusResponse getStatus(int uid);
+    GetChatServerResponse getChatServer(const uint64_t &uid);
 
 private:
     StatusGrpcClient();

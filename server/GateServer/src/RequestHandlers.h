@@ -14,6 +14,9 @@
 #include "Logger.h"
 #include "Singleton.h"
 #include "StatusGrpcClient.h"
+#include "UserServiceClient.h"
+#include <jwt-cpp/jwt.h>
+#include "ConfigMgr.h"
 
 inline namespace RequestHandlerFuncs {
 
@@ -165,16 +168,8 @@ inline namespace RequestHandlerFuncs {
             return;
         }
 
-        int uid = MysqlMgr::getInstance()->registerUser(username, email, password);
-        if (uid == 0) {
-            response["error"] = ErrorCode::MYSQL_ERROR;
-            response["message"] = "MySQL error";
-            boost::beast::ostream(connection->getResponse().body()) << response.dump();
-            return;
-        }
-        if (uid == -1 || uid == -2) {
-            response["error"] = uid == -1 ? ErrorCode::USERNAME_EXISTS : ErrorCode::EMAIL_EXISTS;
-            response["message"] = uid == -1 ? "Username already registered" : "Email already registered";
+        uint64_t uid = 0;
+        if (!UserServiceClient::getInstance()->CreateUser(username, password, email, uid)) {
             boost::beast::ostream(connection->getResponse().body()) << response.dump();
             return;
         }
@@ -219,7 +214,6 @@ inline namespace RequestHandlerFuncs {
         std::string verify_code = json_data["verify_code"].get<std::string>();
         std::string password = json_data["new_password"].get<std::string>();
         auto redis_mgr = RedisMgr::getInstance();
-        auto mysql_mgr = MysqlMgr::getInstance();
 
         // 检查验证码是否正确
         if (!redis_mgr->exists("verify_code_" + email)
@@ -230,19 +224,9 @@ inline namespace RequestHandlerFuncs {
             return;
         }
 
-        // 检查 数据库中是否存在该邮箱
-        int uid = mysql_mgr->getUidByEmail(email);
-        if (uid <= 0) {
-            response["error"] = ErrorCode::EMAIL_NOT_REGISTERED;
-            response["message"] = "Email not registered";
-            boost::beast::ostream(connection->getResponse().body()) << response.dump();
-            return;
-        }
-
-        // 邮箱存在，重置密码
-        if (!mysql_mgr->resetPassword(uid, password)) {
-            response["error"] = ErrorCode::MYSQL_ERROR;
-            response["message"] = "MySQL error";
+        if (!UserServiceClient::getInstance()->ResetPassword(email, password)) {
+            response["error"] = ErrorCode::RPC_ERROR;
+            response["message"] = "Reset password failed";
             boost::beast::ostream(connection->getResponse().body()) << response.dump();
             return;
         }
@@ -281,49 +265,110 @@ inline namespace RequestHandlerFuncs {
             return;
         }
 
-        auto mysql_mgr = MysqlMgr::getInstance();
-
-        // 检查 数据库中是否存在该用户名
-        int uid = mysql_mgr->getUidByUsername(username);
-        if (uid > 0) {
-            // 用户名存在，检查密码
-            if (!mysql_mgr->checkPassword(uid, password)) {
-                response["error"] = ErrorCode::USERNAME_OR_PASSWORD_ERROR;
-                response["message"] = "Username or password error";
-                boost::beast::ostream(connection->getResponse().body()) << response.dump();
-                return;
-            }
-        } else {
-            // 用户名不存在，检查邮箱
-            uid = mysql_mgr->getUidByEmail(username);
-            if (uid <= 0) {
-                response["error"] = ErrorCode::USERNAME_OR_PASSWORD_ERROR;
-                response["message"] = "Username or password error";
-                boost::beast::ostream(connection->getResponse().body()) << response.dump();
-                return;
-            }
-            // 邮箱存在，检查密码
-            if (!mysql_mgr->checkPassword(uid, password)) {
-                response["error"] = ErrorCode::USERNAME_OR_PASSWORD_ERROR;
-                response["message"] = "Username or password error";
-                boost::beast::ostream(connection->getResponse().body()) << response.dump();
-                return;
-            }
-        }
-
-        UserInfo user_info = mysql_mgr->getUserInfo(uid);
-        if (user_info.uid <= 0) {
-            response["error"] = ErrorCode::MYSQL_ERROR;
-            response["message"] = "MySQL error";
+        // 验证用户名和密码, 并获取用户信息
+        if (!UserServiceClient::getInstance()->VerifyCredentials(username, password, response)) {
             boost::beast::ostream(connection->getResponse().body()) << response.dump();
             return;
         }
 
-//        auto reply = StatusGrpcClient::getInstance()->getChatServer(user_info.uid);
+        // 获取聊天服务器
+        // auto reply = StatusGrpcClient::getInstance()->getChatServer(response["uid"].get<uint64_t>());
+        // if (reply.code() != message::GetChatServerResponse_Code_OK) {
+        //     response["error"] = ErrorCode::RPC_ERROR;
+        //     response["message"] = reply.error_msg();
+        //     boost::beast::ostream(connection->getResponse().body()) << response.dump();
+        //     return;
+        // }
 
         // 登录成功，返回成功响应
         response["error"] = ErrorCode::SUCCESS;
         response["message"] = "Login successful";
+        // response["host"] = reply.host();
+        // response["port"] = reply.port();
+        boost::beast::ostream(connection->getResponse().body()) << response.dump();
+
+        /*
+        response 格式
+        {
+            "error": 0,
+            "message": "Login successful",
+            "host": "127.0.0.1",
+            "port": 8080,
+            "uid": 1234567890,
+            "user_profile": {
+                "username": "test",
+                "email": "test@test.com",
+                "avatar": "test.com/avatar.png"
+                ....
+            }
+        }
+        */
+    }
+
+    void handle_post_getChatServer(const std::shared_ptr<HttpConnection> &connection) {
+        std::string body(boost::beast::buffers_to_string(connection->getRequest().body().data()));
+        nlohmann::json json_data;
+        nlohmann::json response;
+
+        connection->getResponse().set(http::field::content_type, "application/json");
+
+        try {
+            json_data = nlohmann::json::parse(body);
+        } catch (const nlohmann::json::parse_error &e) {
+            LOG_ERROR("JSON parse error: {}", e.what());
+            response["error"] = ErrorCode::JSON_PARSE_ERROR;
+            response["message"] = "Invalid JSON format";
+            boost::beast::ostream(connection->getResponse().body()) << response.dump();
+            return;
+        }
+
+        uint64_t uid = json_data["uid"].get<uint64_t>();
+        std::string token = json_data["token"].get<std::string>();
+
+        try {
+            auto &config = *ConfigMgr::getInstance();
+            const auto decoded = jwt::decode(token);
+            const auto verifier = jwt::verify()
+                .allow_algorithm(jwt::algorithm::hs256(config["JWT"]["secret_key"]))
+                .with_issuer("UserService");
+            verifier.verify(decoded);
+
+            try {
+                if (uint64_t token_uid = std::stoull(decoded.get_subject()); uid != token_uid) {
+                    LOG_ERROR("UID does not match token UID");
+                    response["error"] = ErrorCode::INVALID_PARAMETER;
+                    response["message"] = "Invalid UID";
+                    boost::beast::ostream(connection->getResponse().body()) << response.dump();
+                    return;
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to verify token UID");
+                response["error"] = ErrorCode::INVALID_PARAMETER;
+                response["message"] = "Invalid UID";
+                boost::beast::ostream(connection->getResponse().body()) << response.dump();
+                return;
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("token 解析失败，token 错误或已过期");
+            response["error"] = ErrorCode::INVALID_PARAMETER;
+            response["message"] = "Token invalid or expired";
+            boost::beast::ostream(connection->getResponse().body()) << response.dump();
+            return;
+        }
+
+        // token 解析正确
+        auto reply = StatusGrpcClient::getInstance()->getChatServer(uid);
+        if (reply.code() == message::GetChatServerResponse_Code_OK) {
+            response["error"] = ErrorCode::SUCCESS;
+            response["message"] = "Success";
+            response["host"] = reply.host();
+            response["port"] = reply.port();
+            boost::beast::ostream(connection->getResponse().body()) << response.dump();
+            return;
+        }
+
+        response["error"] = ErrorCode::RPC_ERROR;
+        response["message"] = reply.error_msg();
         boost::beast::ostream(connection->getResponse().body()) << response.dump();
     }
 } // RequestHandlerFuncs
