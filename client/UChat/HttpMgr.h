@@ -33,7 +33,20 @@ public:
 
     void getPasswordResetCode(const QString &email);
 
+    // 获取ChatServer服务器信息
     void getChatServer(const uint64_t &uid, const QString &token);
+    
+    // 获取用户资料
+    void getUserProfile(const uint64_t &uid, const QString &token);
+    
+    // 添加联系人
+    void addContact(const uint64_t &uid, const QString &token, const uint64_t &friendId);
+    
+    // 获取联系人列表
+    void getContacts(const uint64_t &uid, const QString &token);
+    
+    // 搜索用户
+    void searchUser(const uint64_t &uid, const QString &token, const QString &keyword);
 
 private:
     friend class Singleton<HttpMgr>;

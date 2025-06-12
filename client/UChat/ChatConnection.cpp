@@ -1,12 +1,15 @@
 #include "ChatConnection.h"
 #include <QDebug>
-#include <QOverload>
+#include <QDateTime>
+#include <QDir>
+#include <QThread>
 
 ChatConnection::ChatConnection(QObject *parent)
     : QObject(parent),
       m_state(Disconnected),
       m_sending(false),
-      m_nextMsgId(0) 
+      m_nextMsgId(0),
+      m_lastActiveTime(QDateTime::currentSecsSinceEpoch())
 {
     m_headerBuffer.resize(HEADER_SIZE);
 
@@ -15,10 +18,6 @@ ChatConnection::ChatConnection(QObject *parent)
     connect(&m_socket, &QTcpSocket::disconnected, this, &ChatConnection::onDisconnected);
     connect(&m_socket, &QTcpSocket::readyRead, this, &ChatConnection::onReadyRead);
     connect(&m_socket, &QTcpSocket::errorOccurred, this, &ChatConnection::onError);
-
-    // 设置心跳计时器
-    m_heartbeatTimer.setInterval(HEARTBEAT_INTERVAL);
-    connect(&m_heartbeatTimer, &QTimer::timeout, this, &ChatConnection::onHeartbeatTimeout);
 }
 
 ChatConnection::~ChatConnection() {
@@ -35,11 +34,19 @@ void ChatConnection::connectToServer(const QString &host, quint16 port) {
     m_port = port;
 
     setState(Connecting);
+    
+    try {
     m_socket.connectToHost(host, port);
+        qDebug() << "发起连接请求：" << host << ":" << port;
+    } catch (const std::exception &e) {
+        qWarning() << "连接失败：" << e.what();
+        setState(Error);
+        emit error(QString("连接失败: %1").arg(e.what()));
+        throw; // 重新抛出异常以便上层处理
+    }
 }
 
 void ChatConnection::disconnect() {
-    stopHeartbeat();
 
     if (m_socket.state() != QAbstractSocket::UnconnectedState) {
         m_socket.disconnectFromHost();
@@ -52,25 +59,49 @@ void ChatConnection::disconnect() {
 }
 
 void ChatConnection::authenticate(uint64_t uid, const QString &token) {
-    if (m_state != Connected) {
-        qWarning() << "未连接到服务器，无法认证";
-        emit error("Cannot authenticate: not connected");
-        return;
+    if (m_state != Connected && m_state != Authenticating) {
+        QString errMsg = QString("认证失败: 当前连接状态不是Connected，而是 %1").arg(m_state);
+        qWarning() << errMsg;
+        emit error("无法认证: 连接未就绪");
+        throw std::runtime_error("无法认证: 连接未就绪");
     }
 
     m_uid = uid;
     m_token = token;
 
-    QJsonObject data;
-    data["uid"] = QString::number(uid);
-    data["token"] = token;
+    try {
+        // 构建认证请求
+        QJsonObject data;
+        data["uid"] = QString::number(uid);
+        data["token"] = token;
 
-    QJsonObject message;
-    message["type"] = "auth_req";
-    message["data"] = data;
+        QJsonObject message;
+        message["type"] = "auth_req";
+        message["data"] = data;
 
-    setState(Authenticating);
-    sendJsonMessage(message, m_nextMsgId++);
+        setState(Authenticating);
+        
+        QString logMsg = QString("===== 发送认证请求 ===== UID: %1, Token: %2...")
+                        .arg(uid)
+                        .arg(token.left(10));
+        qDebug() << logMsg;
+        
+        // 记录套接字状态
+        QString socketState = QString("套接字状态: 已连接=%1, 开启状态=%2, 错误=%3, 状态=%4")
+                             .arg(m_socket.isValid())
+                             .arg(m_socket.isOpen())
+                             .arg(m_socket.error())
+                             .arg(m_socket.state());
+        qDebug() << socketState;
+
+        sendJsonMessage(message, m_nextMsgId++);
+    } catch (const std::exception &e) {
+        QString errMsg = QString("发送认证请求失败: %1").arg(e.what());
+        qCritical() << errMsg;
+        setState(Connected);  // 恢复到已连接状态
+        emit error(errMsg);
+        throw; // 重新抛出异常以便上层处理
+    }
 }
 
 void ChatConnection::sendChatMessage(uint64_t toUid, const QString &content, const QString &msgType) {
@@ -108,14 +139,11 @@ void ChatConnection::sendHeartbeat() {
 void ChatConnection::onConnected() {
     qDebug() << "连接成功";
     setState(Connected);
-    emit connected();
 }
 
 void ChatConnection::onDisconnected() {
     qDebug() << "连接断开";
-    stopHeartbeat();
     setState(Disconnected);
-    emit disconnected();
 }
 
 void ChatConnection::onReadyRead() {
@@ -131,10 +159,14 @@ void ChatConnection::readHeader() {
         return;
     }
 
+    // 使用网络字节序（大端序）解析消息头
     quint16 msgId = ((static_cast<quint8>(m_headerBuffer[0]) << 8) |
                       static_cast<quint8>(m_headerBuffer[1]));
     quint16 msgLen = ((static_cast<quint8>(m_headerBuffer[2]) << 8) |
                       static_cast<quint8>(m_headerBuffer[3]));
+
+    QString logMsg = QString("收到消息头: ID=%1, 长度=%2").arg(msgId).arg(msgLen);
+    qDebug() << logMsg;
 
     if (msgLen > 0 && msgLen <= MAX_CONTENT_LENGTH) {
         readBody(msgId, msgLen);
@@ -206,19 +238,51 @@ void ChatConnection::processMessage(quint16 msgId, const QByteArray &data) {
     if (type == "auth_resp") {
         int code = message["code"].toInt();
         if (code == 0) {
-            qDebug() << "认证成功";
+            qInfo() << "认证成功 (UID:" << m_uid << ")";
             setState(Authenticated);
-            emit authenticated();
-            startHeartbeat();
         } else {
-            qWarning() << "认证失败" << code;
             QString errorMsg = message["message"].toString();
+            qWarning() << "认证失败: 代码=" << code << ", 原因=" << errorMsg << " (UID:" << m_uid << ")";
             emit authenticationFailed(code, errorMsg);
             setState(Connected);
         }
     } else if (type == "send_msg_resp") {
         int code = message.value("code").toInt();
+        bool success = (code == 0);
+        QString msg = message.value("message").toString();
         
+        if (message.contains("data") && message["data"].isObject()) {
+            QJsonObject data = message["data"].toObject();
+            if (data.contains("to_uid") && data.contains("content")) {
+                uint64_t toUid = data["to_uid"].toString().toULongLong();
+                QString content = data["content"].toString();
+                emit messageSent(toUid, content, success, msg);
+            }
+        }
+    } else if (type == "recv_msg") {
+        if (message.contains("data") && message["data"].isObject()) {
+            QJsonObject data = message["data"].toObject();
+            if (data.contains("from_uid") && data.contains("content") && data.contains("msg_type")) {
+                uint64_t fromUid = data["from_uid"].toString().toULongLong();
+                QString content = data["content"].toString();
+                QString msgType = data["msg_type"].toString();
+                qint64 timestamp = data.contains("timestamp") ? data["timestamp"].toVariant().toLongLong() : QDateTime::currentSecsSinceEpoch();
+                
+                emit messageReceived(fromUid, content, msgType, timestamp);
+            }
+        }
+    } else if (type == "heartbeat_resp") {
+        // 处理心跳响应
+        qDebug() << "收到心跳响应";
+        // 可以在这里重置计时器或更新最后活跃时间
+        updateLastActiveTime();
+        // 不要将心跳响应作为消息发送到UI
+        // emit messageReceived(0, "", "heartbeat_resp", QDateTime::currentSecsSinceEpoch());
+        
+        // 可以添加专门的心跳响应信号
+        emit heartbeatResponseReceived();
+    } else {
+        qWarning() << "未知消息类型" << type;
     }
 }
 
@@ -229,21 +293,42 @@ void ChatConnection::sendJsonMessage(const QJsonObject &message, quint16 msgId)
     
     // 构建消息头部（消息ID和内容长度）
     QByteArray header;
-    QDataStream headerStream(&header, QIODevice::WriteOnly);
-    headerStream.setByteOrder(QDataStream::LittleEndian);
-    headerStream << msgId;
-    headerStream << static_cast<quint16>(jsonData.size());
+    header.resize(HEADER_SIZE);
     
+    // 使用网络字节序（大端序）
+    header[0] = (msgId >> 8) & 0xFF;
+    header[1] = msgId & 0xFF;
+    header[2] = (jsonData.size() >> 8) & 0xFF;
+    header[3] = jsonData.size() & 0xFF;
+    
+    QString logMsg = QString("发送消息: ID=%1, 类型=%2, 长度=%3, 内容=%4")
+                    .arg(msgId)
+                    .arg(message["type"].toString())
+                    .arg(jsonData.size())
+                    .arg(QString(jsonData));
+    
+    qDebug() << logMsg;
+             
     // 发送数据
-    m_socket.write(header);
-    m_socket.write(jsonData);
+    qint64 headerBytes = m_socket.write(header);
+    qint64 dataBytes = m_socket.write(jsonData);
+    
+    if (headerBytes != HEADER_SIZE || dataBytes != jsonData.size()) {
+        QString errMsg = QString("消息发送不完整: 头部=%1/%2, 数据=%3/%4")
+                        .arg(headerBytes).arg(HEADER_SIZE)
+                        .arg(dataBytes).arg(jsonData.size());
+        qWarning() << errMsg;
+    }
+    
+    // 强制立即发送
+    m_socket.flush();
 }
 
 void ChatConnection::setState(ConnectionState newState)
 {
     if (m_state != newState) {
+        qDebug() << "连接状态变更: " << m_state << " -> " << newState;
         m_state = newState;
-        emit stateChanged(m_state);
         
         switch (m_state) {
             case Connected:
@@ -258,25 +343,6 @@ void ChatConnection::setState(ConnectionState newState)
             default:
                 break;
         }
-    }
-}
-
-void ChatConnection::startHeartbeat()
-{
-    // 启动心跳定时器，默认30秒发送一次
-    m_heartbeatTimer.start(HEARTBEAT_INTERVAL);
-}
-
-void ChatConnection::stopHeartbeat()
-{
-    // 停止心跳定时器
-    m_heartbeatTimer.stop();
-}
-
-void ChatConnection::onHeartbeatTimeout()
-{
-    if (isConnected()) {
-        sendHeartbeat();
     }
 }
 
@@ -312,8 +378,9 @@ void ChatConnection::onError(QAbstractSocket::SocketError socketError)
     
     // 发送错误信号
     emit error(errorMessage);
-    
-    // 停止心跳
-    stopHeartbeat();
 }
       
+void ChatConnection::updateLastActiveTime()
+{
+    m_lastActiveTime = QDateTime::currentSecsSinceEpoch();
+}

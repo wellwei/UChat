@@ -1,6 +1,6 @@
 #include "StatusGrpcClient.h"
 #include "ConfigMgr.h"
-#include "proto_generated/StatusServer.grpc.pb.h"
+#include "statusserver.grpc.pb.h"
 
 StatusGrpcClient::StatusGrpcClient() {
     auto &config_mgr = ConfigMgr::getInstance();

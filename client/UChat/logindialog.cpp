@@ -33,6 +33,7 @@ LoginDialog::LoginDialog(QWidget *parent)
     connect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
     connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
     connect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_chat_mod_finish, this, &LoginDialog::slot_chat_mod_finish);
 
     // 设置密码框显示/隐藏按钮
     setupPasswordVisibilityToggle();
@@ -46,6 +47,7 @@ LoginDialog::~LoginDialog() {
     disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_login_finish, this, &LoginDialog::slot_login_finish);
     disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reg_mod_finish, this, &LoginDialog::slot_reg_mod_finish);
     disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_reset_mod_finish, this, &LoginDialog::slot_reset_mod_finish);
+    disconnect(HttpMgr::getInstance().get(), &HttpMgr::sig_chat_mod_finish, this, &LoginDialog::slot_chat_mod_finish);
     delete ui;
 }
 
@@ -103,6 +105,7 @@ void LoginDialog::on_to_register_btn_clicked() {
 
 // 登录请求处理
 void LoginDialog::slot_login_finish(ReqId id, const QString &res, ErrorCodes err) {
+    setEnabled(true);
     if (err != ErrorCodes::SUCCESS) {
         showTip(ui->login_err_tip_label, tr("网络错误"));
         return;
@@ -244,7 +247,7 @@ void LoginDialog::on_reset_to_login_btn_clicked() {
 }
 
 void LoginDialog::slot_reset_mod_finish(ReqId id, const QString &res, ErrorCodes err) {
-    ui->reset_confirm_btn->setEnabled(true);
+    setEnabled(true);
     if (err != ErrorCodes::SUCCESS) {
         showTip(ui->reset_err_tip_label, tr("网络错误"));
         return;
@@ -442,33 +445,11 @@ bool LoginDialog::validateResetConfirmInput() {
 void LoginDialog::initHttpHandlers() {
     // 登录请求响应处理
     _handlers.insert(ReqId::ID_LOGIN, [this](const QJsonObject &jsonObj) {
-        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
 
         if (error_code == 0) {
-            // 登录成功
-            QString username = ui->username_edit->text().trimmed();
-            QString token = jsonObj.value("token").toString();
-            int uid = jsonObj.value("uid").toInt();
-            QString host = jsonObj.value("host").toString();
-            QString port = jsonObj.value("port").toString();
-
-            // 创建ServerInfo对象
-            ServerInfo serverInfo;
-            serverInfo.host = host;
-            serverInfo.port = port;
-            serverInfo.token = token;
-            serverInfo.uid = uid;
-
-            // TODO 连接ChatServer
-
-            // 发送登录成功信号
-            if (true) {
-                emit loginSuccess(serverInfo);
-                accept();
-            } else {
-                showTip(ui->login_err_tip_label, tr("连接聊天服务器失败"));
-            }
+            // 登录成功，开始获取聊天服务器信息和用户资料
+            processLoginSuccess(jsonObj);
         } else {
             // 登录失败
             showTip(ui->login_err_tip_label, getErrorMessage(static_cast<ErrorCodes>(error_code)));
@@ -477,7 +458,6 @@ void LoginDialog::initHttpHandlers() {
 
     // 验证码请求响应处理
     _handlers.insert(ReqId::ID_GET_VERIFYCODE, [this](const QJsonObject &jsonObj) {
-        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->register_err_tip_label, tr("验证码已发送到邮箱，请注意查收"), false);
@@ -490,7 +470,6 @@ void LoginDialog::initHttpHandlers() {
 
     // 注册请求响应处理
     _handlers.insert(ReqId::ID_REGISTER, [this](const QJsonObject &jsonObj) {
-        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             // 注册成功
@@ -509,7 +488,6 @@ void LoginDialog::initHttpHandlers() {
 
     // 重置密码 - 获取验证码响应处理
     _handlers.insert(ReqId::ID_FORGET_PWD_REQUEST_CODE, [this](const QJsonObject &jsonObj) {
-        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->reset_err_tip_label, tr("验证码已发送到邮箱，请注意查收"), false);
@@ -522,7 +500,6 @@ void LoginDialog::initHttpHandlers() {
 
     // 重置密码 - 确认重置响应处理
     _handlers.insert(ReqId::ID_RESET_PASSWORD, [this](const QJsonObject &jsonObj) {
-        setEnabled(true);
         int error_code = jsonObj.value("error").toInt();
         if (error_code == 0) {
             showTip(ui->reset_err_tip_label, tr("密码重置成功！正在跳转到登录页面..."), false);
@@ -628,4 +605,95 @@ void LoginDialog::toggleResetConfirmPasswordVisibility() {
     // 更新图标
     QAction *action = ui->reset_confirm_password_edit->actions().last();
     action->setIcon(QIcon(m_resetConfirmPasswordVisible ? ":/resource/image/password_visible.svg" : ":/resource/image/password_invisible.svg"));
+}
+
+// 聊天服务相关槽函数
+void LoginDialog::slot_chat_mod_finish(ReqId id, const QString &res, ErrorCodes err) {
+    setEnabled(true);
+    if (err != ErrorCodes::SUCCESS) {
+        QString errMsg = id == ID_GET_CHAT_SERVER ? "获取聊天服务器信息失败" : "获取用户资料失败";
+        showTip(ui->login_err_tip_label, errMsg);
+        return;
+    }
+
+    // 解析服务器返回的 JSON 数据
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(res.toUtf8());
+    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
+        showTip(ui->login_err_tip_label, tr("JSON 解析错误"));
+        return;
+    }
+
+    QJsonObject jsonObj = jsonDoc.object();
+
+    // 根据请求ID处理不同的响应
+    if (id == ID_GET_CHAT_SERVER) {
+        processChatServerInfo(jsonObj);
+    } else if (id == ID_GET_USER_PROFILE) {
+        processUserProfile(jsonObj);
+    }
+}
+
+// 处理登录成功后的数据
+void LoginDialog::processLoginSuccess(const QJsonObject &loginResponse) {
+    QString token = loginResponse.value("token").toString();
+    int uid = loginResponse.value("uid").toInt();
+
+    // 创建ServerInfo对象
+    m_clientInfo.token = token;
+    m_clientInfo.uid = uid;
+
+    // 请求ChatServer信息
+    setEnabled(false); // 禁用界面
+    showTip(ui->login_err_tip_label, tr("获取聊天服务器信息..."), false);
+    HttpMgr::getInstance()->getChatServer(uid, token);
+}
+
+// 处理ChatServer信息
+void LoginDialog::processChatServerInfo(const QJsonObject &clientInfo) {
+    int error_code = clientInfo.value("error").toInt();
+    
+    if (error_code == 0) {
+        // 获取服务器信息成功
+        m_clientInfo.host = clientInfo.value("host").toString();
+        m_clientInfo.port = clientInfo.value("port").toString();
+        
+        // 继续获取用户资料
+        setEnabled(false); // 继续禁用界面
+        showTip(ui->login_err_tip_label, tr("获取用户资料..."), false);
+        HttpMgr::getInstance()->getUserProfile(m_clientInfo.uid, m_clientInfo.token);
+    } else {
+        // 获取服务器信息失败
+        showTip(ui->login_err_tip_label, tr("获取聊天服务器失败"));
+    }
+}
+
+// 处理用户资料
+void LoginDialog::processUserProfile(const QJsonObject &profileInfo) {
+    int error_code = profileInfo.value("error").toInt();
+    
+    if (error_code == 0) {
+        // 获取用户资料成功
+        QJsonObject profile = profileInfo.value("user_profile").toObject();
+        
+        // 将用户资料保存到ServerInfo对象中
+        m_clientInfo.userProfile.uid = profile.value("uid").toVariant().toULongLong();
+        m_clientInfo.userProfile.username = profile.value("username").toString();
+        m_clientInfo.userProfile.nickname = profile.value("nickname").toString();
+        m_clientInfo.userProfile.avatar_url = profile.value("avatar_url").toString();
+        m_clientInfo.userProfile.email = profile.value("email").toString();
+        m_clientInfo.userProfile.phone = profile.value("phone").toString();
+        m_clientInfo.userProfile.gender = QString::number(profile.value("gender").toInt());
+        m_clientInfo.userProfile.signature = profile.value("signature").toString();
+        m_clientInfo.userProfile.location = profile.value("location").toString();
+        m_clientInfo.userProfile.status = QString::number(profile.value("status").toInt());
+        m_clientInfo.userProfile.create_time = profile.value("create_time").toString();
+        m_clientInfo.userProfile.update_time = profile.value("update_time").toString();
+        
+        // 完成登录流程，发射登录成功信号
+        emit loginSuccess(m_clientInfo);
+        accept();
+    } else {
+        // 获取用户资料失败
+        showTip(ui->login_err_tip_label, tr("获取用户资料失败"));
+    }
 }

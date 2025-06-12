@@ -1,10 +1,8 @@
 #pragma once
 
-#include "proto_generated/InterChat.grpc.pb.h"
+#include "chatserver.grpc.pb.h"
 #include "ConnectionManager.h"
 #include "MessageHandler.h"
-#include <grpcpp/grpcpp.h>
-#include <memory>
 
 class InterChatServiceImpl final : public InterChatService::Service {
 public:

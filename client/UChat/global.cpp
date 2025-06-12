@@ -12,6 +12,11 @@ std::function<void(QWidget *)> repolish = [](QWidget *w) {
     if (w) {
         w->style()->unpolish(w);
         w->style()->polish(w);
-        w->update();
+        // 对子控件也应用样式刷新
+        for (QObject *child : w->children()) {
+            if (QWidget *childWidget = qobject_cast<QWidget *>(child)) {
+                repolish(childWidget);
+            }
+        }
     }
 };

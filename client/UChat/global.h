@@ -20,6 +20,10 @@ enum ReqId {
     ID_FORGET_PWD_REQUEST_CODE = 1004,
     ID_RESET_PASSWORD = 1005,
     ID_GET_CHAT_SERVER = 1006,
+    ID_GET_USER_PROFILE = 1007,
+    ID_ADD_CONTACT = 1008,
+    ID_GET_CONTACTS = 1009,
+    ID_SEARCH_USER = 1010,
 };
 
 // 错误码
@@ -62,7 +66,7 @@ inline const char *getErrorMessage(ErrorCodes code) {
         case EMAIL_NOT_REGISTERED:
             return "Email not registered";
         case USERNAME_NOT_REGISTERED:
-            return "Username not registered";
+            return "Username or password error";
         case NETWORK_ERROR:
             return "Network error";
         default:
@@ -78,11 +82,27 @@ enum Modules {
     CHATMOD = 3
 };
 
-struct ServerInfo {
+struct UserProfile {
+    quint64 uid;
+    QString username;
+    QString nickname;
+    QString avatar_url;
+    QString email;
+    QString phone;
+    QString gender;
+    QString signature;
+    QString location;
+    QString status;
+    QString create_time;
+    QString update_time;
+};
+
+struct ClientInfo {
     QString host;
     QString port;
     QString token;
-    int uid;
+    quint64 uid;
+    UserProfile userProfile;
 };
 
 #endif //UCHAT_GLOBAL_H

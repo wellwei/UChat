@@ -106,12 +106,13 @@ bool MessageHandler::handleAuthMessage(const TcpConnectionPtr &conn, const uint1
 
     try {
         const std::string token = data["token"];
-        const uint64_t uid = data.contains("uid") ? data["uid"].get<uint64_t>() : 0;
+        const std::string suid = data.contains("uid") ? data["uid"].get<std::string>() : "";
+        const uint64_t uid = std::stoull(suid);
 
         auto decoded = jwt::decode(token);
         verifier_.verify(decoded);
 
-        if (decoded.get_subject() != std::to_string(uid)) {
+        if (decoded.get_subject() != suid) {
             LOG_WARN("用户 ID 不匹配: 令牌中的用户 ID 为 {}, 请求中的用户 ID 为 {}", decoded.get_subject(), uid);
             sendJsonResponse(conn, req_id, MessageType::ErrorResp, ErrorCodes::kErrChatTokenUserMismatch, "用户 ID 不匹配");
             return false;
@@ -132,7 +133,7 @@ bool MessageHandler::handleAuthMessage(const TcpConnectionPtr &conn, const uint1
         // 发送认证成功消息
         sendJsonResponse(conn, req_id, MessageType::AuthResp, ErrorCodes::kSuccess, "认证成功");
 
-        LOG_INFO("用户 {} 认证成功", uid);
+         LOG_INFO("用户 {} 认证成功", uid);
         return true;
     } catch (const jwt::error::token_verification_exception &e) {
         LOG_WARN("JWT 认证失败: {}", e.what());
@@ -243,7 +244,7 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
         message_json["type"] = MessageType::RecvMsg;
         
         json message_data;
-        message_data["from_uid"] = from_uid;
+        message_data["from_uid"] = std::to_string(from_uid);
         message_data["msg_type"] = msg_type;
         message_data["content"] = content;
         message_data["timestamp"] = static_cast<uint64_t>(std::time(nullptr));

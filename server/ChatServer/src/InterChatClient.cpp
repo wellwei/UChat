@@ -3,7 +3,6 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <chrono>
-#include <ctime>
 
 bool InterChatClient::ForwardMessage(
     const std::string& target_host, 

@@ -14,7 +14,8 @@ LogicSystem::LogicSystem() {
     registerHandler(RequestType::POST, "/register", RequestHandlerFuncs::handle_post_register);
     registerHandler(RequestType::POST, "/login", RequestHandlerFuncs::handle_post_login);
     registerHandler(RequestType::POST, "/reset_password", RequestHandlerFuncs::handle_put_resetPassword);
-    registerHandler(POST, "/get_chat_server", RequestHandlerFuncs::handle_post_getChatServer);
+    registerHandler(RequestType::POST, "/get_chat_server", RequestHandlerFuncs::handle_post_getChatServer);
+    registerHandler(RequestType::POST, "/get_user_profile", RequestHandlerFuncs::handle_post_getUserProfile);
 }
 
 void

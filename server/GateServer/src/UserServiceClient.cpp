@@ -26,7 +26,6 @@ bool UserServiceClient::VerifyCredentials(const std::string& handle, const std::
     if (status.ok()) {
         if (reply.success()) {
             response["uid"] = reply.uid();
-            response["user_profile"] = reply.user_profile().SerializeAsString();
             response["token"] = reply.token();
             return true;
         } else {
@@ -80,7 +79,23 @@ bool UserServiceClient::GetUserProfile(const uint64_t uid, nlohmann::json& user_
     _stub->returnStub(std::move(stub));
     if (status.ok()) {
         if (reply.success()) {
-            user_info = reply.user_profile().SerializeAsString();
+            const UserProfile& profile = reply.user_profile();
+            nlohmann::json profile_json;
+            
+            profile_json["uid"] = profile.uid();
+            profile_json["username"] = profile.username();
+            profile_json["nickname"] = profile.nickname();
+            profile_json["avatar_url"] = profile.avatar_url();
+            profile_json["email"] = profile.email();
+            profile_json["phone"] = profile.phone();
+            profile_json["gender"] = static_cast<int>(profile.gender());
+            profile_json["signature"] = profile.signature();
+            profile_json["location"] = profile.location();
+            profile_json["status"] = static_cast<int>(profile.status());
+            profile_json["create_time"] = profile.create_time();
+            profile_json["update_time"] = profile.update_time();
+            
+            user_info = profile_json;
             return true;
         } else {
             LOG_ERROR("Get user profile failed: {}", reply.error_msg());
@@ -136,6 +151,112 @@ bool UserServiceClient::ResetPassword(const std::string& email, const std::strin
         }
     } else {
         LOG_ERROR("Reset password failed: {}", status.error_message());
+        return false;
+    }
+}
+
+bool UserServiceClient::AddContact(const uint64_t user_id, const uint64_t friend_id, nlohmann::json& response) {
+    AddContactRequest request;
+    AddContactResponse reply;
+    ClientContext context;
+
+    request.set_user_id(user_id);
+    request.set_friend_id(friend_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->AddContact(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (status.ok()) {
+        if (reply.success()) {
+            return true;
+        } else {
+            response["error"] = ErrorCode::RPC_ERROR;
+            response["message"] = reply.error_msg();
+            LOG_ERROR("Add contact failed: {}", reply.error_msg());
+            return false;
+        }
+    } else {
+        response["error"] = ErrorCode::RPC_ERROR;
+        response["message"] = status.error_message();
+        LOG_ERROR("Add contact failed: {}", status.error_message());
+        return false;
+    }
+}
+
+bool UserServiceClient::GetContacts(const uint64_t uid, nlohmann::json& contacts) {
+    GetContactsRequest request;
+    GetContactsResponse reply;
+    ClientContext context;
+
+    request.set_uid(uid);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->GetContacts(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (status.ok()) {
+        if (reply.success()) {
+            nlohmann::json contacts_array = nlohmann::json::array();
+            
+            for (const auto& contact : reply.contacts()) {
+                nlohmann::json contact_json;
+                contact_json["uid"] = contact.uid();
+                contact_json["username"] = contact.username();
+                contact_json["nickname"] = contact.nickname();
+                contact_json["avatar_url"] = contact.avatar_url();
+                contact_json["status"] = static_cast<int>(contact.status());
+                contact_json["signature"] = contact.signature();
+                contacts_array.push_back(contact_json);
+            }
+            
+            contacts = contacts_array;
+            return true;
+        } else {
+            LOG_ERROR("Get contacts failed: {}", reply.error_msg());
+            return false;
+        }
+    } else {
+        LOG_ERROR("Get contacts failed: {}", status.error_message());
+        return false;
+    }
+}
+
+bool UserServiceClient::SearchUser(const std::string& keyword, nlohmann::json& users) {
+    SearchUserRequest request;
+    SearchUserResponse reply;
+    ClientContext context;
+
+    request.set_keyword(keyword);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->SearchUser(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (status.ok()) {
+        if (reply.success()) {
+            nlohmann::json users_array = nlohmann::json::array();
+            
+            for (const auto& user : reply.users()) {
+                nlohmann::json user_json;
+                user_json["uid"] = user.uid();
+                user_json["username"] = user.username();
+                user_json["nickname"] = user.nickname();
+                user_json["avatar_url"] = user.avatar_url();
+                user_json["email"] = user.email();
+                user_json["phone"] = user.phone();
+                user_json["gender"] = static_cast<int>(user.gender());
+                user_json["signature"] = user.signature();
+                user_json["location"] = user.location();
+                user_json["status"] = static_cast<int>(user.status());
+                users_array.push_back(user_json);
+            }
+            
+            users = users_array;
+            return true;
+        } else {
+            LOG_ERROR("Search users failed: {}", reply.error_msg());
+            return false;
+        }
+    } else {
+        LOG_ERROR("Search users failed: {}", status.error_message());
         return false;
     }
 }

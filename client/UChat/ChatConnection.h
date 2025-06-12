@@ -23,12 +23,12 @@ public:
     };
 
     explicit ChatConnection(QObject *parent = nullptr);
-    ~ChatConnection();
+    ~ChatConnection() override;
 
     void connectToServer(const QString &host, quint16 port);
     void disconnect();
 
-    bool isConnected() const { return m_state == Connected || m_state == Authenticated; }
+    bool isConnected() const { return m_state == Connected || m_state == Authenticated || m_state == Authenticating; }
     bool isAuthenticated() const { return m_state == Authenticated; }
     ConnectionState state() const { return m_state; }
 
@@ -45,13 +45,13 @@ signals:
     void messageReceived(uint64_t fromUid, const QString &content, const QString &msgType, qint64 timestamp);
     void messageSent(uint64_t toUid, const QString &content, bool success, const QString &message);
     void error(const QString &errorMessage);
+    void heartbeatResponseReceived();
 
 private slots:
     void onConnected();
     void onDisconnected();
     void onReadyRead();
     void onError(QAbstractSocket::SocketError socketError);
-    void onHeartbeatTimeout();
     void processPendingMessages();
 
 private:
@@ -59,19 +59,19 @@ private:
     void sendJsonMessage(const QJsonObject &message, quint16 msgId);
     void readHeader();
     void readBody(quint16 msgId, quint16 contentLength);
+
+    void updateLastActiveTime();
+
     void processMessage(quint16 msgId, const QByteArray &data);
-    void startHeartbeat();
-    void stopHeartbeat();
 
 private:
     QTcpSocket m_socket;
-    QTimer m_heartbeatTimer;
-    QTimer m_reconnectTimer;
     ConnectionState m_state;
-    uint64_t m_uid;
+    uint64_t m_uid{};
     QString m_token;
     QString m_host;
-    quint16 m_port;
+    quint16 m_port{};
+    qint64 m_lastActiveTime;
     
     // 消息缓冲区
     QByteArray m_headerBuffer;
@@ -91,7 +91,6 @@ private:
     quint16 m_nextMsgId;
 
     // 常量
-    static const quint16 HEARTBEAT_INTERVAL = 30000; // 心跳间隔30秒
     static const quint16 HEADER_SIZE = 4; // 消息头大小
     static const quint16 MAX_CONTENT_LENGTH = 65535; // 最大内容长度
 };

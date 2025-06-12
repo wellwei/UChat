@@ -12,3 +12,18 @@ message ForwardedMessage {
     string content = 4;              // 消息内容
     string timestamp = 5;            // 消息时间戳
 }
+
+service NotificationService {
+    // 推送通知给指定用户
+    rpc PushNotification(PushNotificationRequest) returns (PushNotificationResponse);
+}
+
+message PushNotificationRequest {
+    int64 target_uid = 1;
+    int32 notification_type = 2;
+    string content_json = 3;
+}
+
+message PushNotificationResponse {
+    bool success = 1;
+}

@@ -117,6 +117,44 @@ void HttpMgr::getChatServer(const uint64_t &uid, const QString &token) {
     PostHttpReq(url, jsonObj, ReqId::ID_GET_CHAT_SERVER, Modules::CHATMOD);
 }
 
+void HttpMgr::getUserProfile(const uint64_t &uid, const QString &token) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+
+    QUrl url(GATE_SERVER_URL + "/get_user_profile");
+    PostHttpReq(url, jsonObj, ReqId::ID_GET_USER_PROFILE, Modules::CHATMOD);
+}
+
+void HttpMgr::addContact(const uint64_t &uid, const QString &token, const uint64_t &friendId) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+    jsonObj["friend_id"] = QString::number(friendId);
+
+    QUrl url(GATE_SERVER_URL + "/add_contact");
+    PostHttpReq(url, jsonObj, ReqId::ID_ADD_CONTACT, Modules::CHATMOD);
+}
+
+void HttpMgr::getContacts(const uint64_t &uid, const QString &token) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+
+    QUrl url(GATE_SERVER_URL + "/get_contacts");
+    PostHttpReq(url, jsonObj, ReqId::ID_GET_CONTACTS, Modules::CHATMOD);
+}
+
+void HttpMgr::searchUser(const uint64_t &uid, const QString &token, const QString &keyword) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+    jsonObj["keyword"] = keyword;
+
+    QUrl url(GATE_SERVER_URL + "/search_user");
+    PostHttpReq(url, jsonObj, ReqId::ID_SEARCH_USER, Modules::CHATMOD);
+}
+
 void HttpMgr::slot_http_finish(ReqId id, const QString &res, ErrorCodes err, Modules module) {
     if (module == Modules::REGISTERMOD) {
         emit sig_reg_mod_finish(id, res, err);

@@ -29,6 +29,15 @@ public:
 
     // 重置密码
     bool ResetPassword(const std::string& email, const std::string& new_password);
+    
+    // 添加联系人
+    bool AddContact(const uint64_t user_id, const uint64_t friend_id, nlohmann::json& response);
+    
+    // 获取联系人列表
+    bool GetContacts(const uint64_t uid, nlohmann::json& contacts);
+    
+    // 搜索用户
+    bool SearchUser(const std::string& keyword, nlohmann::json& users);
 
 private:
     UserServiceClient();

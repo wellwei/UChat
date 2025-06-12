@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 好友关系表
-CREATE TABLE IF NOT EXISTS friends (
+-- 联系人关系表
+CREATE TABLE IF NOT EXISTS contacts (
     user_id BIGINT UNSIGNED NOT NULL,
     friend_id BIGINT UNSIGNED NOT NULL,
     status INT DEFAULT 0,  -- 0: 待处理, 1: 已接受, 2: 已拒绝, 等等
@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS friends (
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, friend_id),
     FOREIGN KEY (user_id) REFERENCES users(uid) ON DELETE CASCADE,
-    FOREIGN KEY (friend_id) REFERENCES users(uid) ON DELETE CASCADE
+    FOREIGN KEY (friend_id) REFERENCES users(uid) ON DELETE CASCADE,
+    UNIQUE KEY (user_id, friend_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 插入一些示例用户
@@ -41,5 +42,5 @@ VALUES
     ('user2', 'password2_hashed', '用户二', 'user2@example.com', '123-456-7891', 'https://example.com/avatars/user2.jpg', '很高兴认识你！', '上海', 2);
 
 -- 添加一个好友关系
-INSERT INTO friends (user_id, friend_id, status)
+INSERT INTO contacts (user_id, friend_id, status)
 VALUES (1, 2, 1);  -- 用户1和用户2是好友

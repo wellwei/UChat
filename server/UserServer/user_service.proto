@@ -87,6 +87,52 @@ message ResetPasswordResponse {
     string error_msg = 2;
 }
 
+// 添加好友请求
+message AddContactRequest {
+    uint64 user_id = 1;       // 发起请求的用户ID
+    uint64 friend_id = 2;     // 要添加的好友ID
+}
+
+// 添加好友响应
+message AddContactResponse {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+// 获取联系人列表请求
+message GetContactsRequest {
+    uint64 uid = 1;           // 用户ID
+}
+
+// 联系人信息
+message ContactInfo {
+    uint64 uid = 1;           // 联系人ID
+    string username = 2;      // 用户名
+    string nickname = 3;      // 昵称
+    string avatar_url = 4;    // 头像URL
+    UserStatus status = 5;    // 在线状态
+    string signature = 6;     // 个性签名
+}
+
+// 获取联系人列表响应
+message GetContactsResponse {
+    bool success = 1;
+    string error_msg = 2;
+    repeated ContactInfo contacts = 3;  // 联系人列表
+}
+
+// 查找用户请求
+message SearchUserRequest {
+    string keyword = 1;       // 搜索关键词 (用户名或邮箱)
+}
+
+// 查找用户响应
+message SearchUserResponse {
+    bool success = 1;
+    string error_msg = 2;
+    repeated UserProfile users = 3;   // 用户列表
+}
+
 // 用户服务
 service UserService {
     // 验证用户凭证
@@ -103,4 +149,13 @@ service UserService {
 
     // 重置密码
     rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {}
+    
+    // 添加联系人
+    rpc AddContact(AddContactRequest) returns (AddContactResponse) {}
+    
+    // 获取联系人列表
+    rpc GetContacts(GetContactsRequest) returns (GetContactsResponse) {}
+    
+    // 搜索用户
+    rpc SearchUser(SearchUserRequest) returns (SearchUserResponse) {}
 }

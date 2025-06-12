@@ -728,6 +728,17 @@ li.checked::marker { content: &quot;\2612&quot;; }
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="addContactButton">
+          <property name="text">
+           <string>添加联系人</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>:/icons/add_user.png</normaloff>:/icons/add_user.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QTreeView" name="contactsTreeView">
           <property name="styleSheet">
            <string notr="true">QTreeView { border: none; background-color: transparent; }

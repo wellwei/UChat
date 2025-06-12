@@ -18,10 +18,6 @@ grpc::Status UserServer::VerifyCredentials(grpc::ServerContext* context, const V
     if (UserProfile user_profile; mysql_mgr->verifyCredentials(request->handle(), request->password(), uid, user_profile)) {
         response->set_success(true);
         response->set_uid(uid);
-        
-        // 使用mutable_user_profile正确设置用户信息
-        UserProfile* profile = response->mutable_user_profile();
-        *profile = user_profile;
         auto auth = Auth::getInstance();
         response->set_token(auth->generateToken(uid));
 

@@ -1,9 +1,8 @@
 #pragma once
 
 #include "GrpcStubPool.h"
-#include "Logger.h"
 #include "Singleton.h"
-#include "proto_generated/StatusServer.grpc.pb.h"
+#include "statusserver.grpc.pb.h"
 
 using grpc::Status;
 using grpc::ClientContext;

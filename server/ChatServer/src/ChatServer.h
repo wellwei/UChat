@@ -6,8 +6,6 @@
 #include "InterChatService.h"
 #include <boost/asio.hpp>
 #include <string>
-#include "InterChat.grpc.pb.h"
-#include <unordered_map>
 #include <grpcpp/grpcpp.h>
 
 namespace asio = boost::asio;
@@ -23,7 +21,7 @@ public:
 
 private:
     void do_accept();
-    void handle_accept(TcpConnectionPtr conn, const boost::system::error_code& error);
+    void handle_accept(const TcpConnectionPtr &conn, const boost::system::error_code& error);
     void handle_message(const TcpConnectionPtr& conn, const Message& msg) const;
     void handle_close(const TcpConnectionPtr& conn);
     void register_server();

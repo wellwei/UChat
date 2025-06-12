@@ -107,7 +107,7 @@ void ChatServer::do_accept() {
         std::bind(&ChatServer::handle_accept, shared_from_this(), conn, std::placeholders::_1));
 }
 
-void ChatServer::handle_accept(TcpConnectionPtr conn, const boost::system::error_code& error) {
+void ChatServer::handle_accept(const TcpConnectionPtr &conn, const boost::system::error_code& error) {
     if (!error) {
         LOG_INFO("接受新的连接: {}", conn->id());
 

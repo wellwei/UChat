@@ -1,7 +1,6 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include <boost/system/error_code.hpp>
 #include <memory>
 #include <queue>
 #include <mutex>
@@ -9,9 +8,6 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <ctime>
-#include <atomic>
-#include <cstdint>
 
 namespace asio = boost::asio;
 using tcp = asio::ip::tcp;

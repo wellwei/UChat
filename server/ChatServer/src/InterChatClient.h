@@ -3,7 +3,7 @@
 #include "GrpcStubPool.h"
 #include "Logger.h"
 #include "Singleton.h"
-#include "proto_generated/InterChat.grpc.pb.h"
+#include "chatserver.grpc.pb.h"
 #include <string>
 #include <memory>
 #include <mutex>

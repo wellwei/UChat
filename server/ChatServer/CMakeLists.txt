@@ -76,7 +76,8 @@ add_executable(ChatServer
         src/InterChatService.cpp
         src/InterChatClient.h
         src/InterChatClient.cpp
-        main.cpp)
+        main.cpp
+)
 
 target_link_libraries(ChatServer PUBLIC
         proto_lib

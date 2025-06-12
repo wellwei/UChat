@@ -30,7 +30,6 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.hpp
         mainwindow.ui
-        ${TS_FILES}
         global.cpp
         global.h
         Singleton.cpp
@@ -41,6 +40,13 @@ set(PROJECT_SOURCES
         timerbutton.hpp
         ChatConnection.cpp
         ChatConnection.h
+        ChatManager.cpp
+        ChatManager.h
+        ContactManager.cpp
+        ContactManager.h
+        ChatUIManager.cpp
+        ChatUIManager.h
+        ${TS_FILES}
 )
 
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)

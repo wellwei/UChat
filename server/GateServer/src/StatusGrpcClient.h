@@ -12,9 +12,6 @@
 using grpc::Channel;
 using grpc::Status;
 using grpc::ClientContext;
-using message::GetChatServerRequest;
-using message::GetChatServerResponse;
-using message::StatusService;
 
 class StatusGrpcClient : public Singleton<StatusGrpcClient> {
     friend class Singleton<StatusGrpcClient>;

@@ -187,9 +187,9 @@ void TcpConnection::checkTimeout() {
 }
 
 bool TcpConnection::isExpired(const uint32_t timeout_seconds) const {
-    return (std::time(nullptr) - last_active_time_) > timeout_seconds;
+    return (time(nullptr) - last_active_time_) > timeout_seconds;
 }
 
 void TcpConnection::updateLastActiveTime() {
-    last_active_time_ = std::time(nullptr);
+    last_active_time_ = time(nullptr);
 }

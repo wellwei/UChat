@@ -9,6 +9,7 @@
 StatusGrpcClient::StatusGrpcClient() {
     auto cfm = *ConfigMgr::getInstance();
     std::string server_address = cfm["StatusServer"]["host"] + ":" + cfm["StatusServer"]["port"];
+    LOG_INFO("address : {}", server_address);
     _stub = std::make_unique<GrpcStubPool<StatusService>>(8, server_address);
 }
 

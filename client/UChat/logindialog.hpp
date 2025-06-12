@@ -24,7 +24,7 @@ public:
     void initHttpHandlers();
 
 signals:
-    void loginSuccess(const ServerInfo &serverInfo);
+    void loginSuccess(const ClientInfo &clientInfo);
 
 private slots:
     // 登录页面槽函数
@@ -45,6 +45,9 @@ private slots:
     void on_reset_to_login_btn_clicked();
     void slot_reset_mod_finish(ReqId id, const QString& res, ErrorCodes err);
 
+    // 聊天服务相关槽函数
+    void slot_chat_mod_finish(ReqId id, const QString& res, ErrorCodes err);
+
     // 密码显示/隐藏槽函数
     void toggleLoginPasswordVisibility();
     void toggleRegisterPasswordVisibility();
@@ -54,6 +57,9 @@ private slots:
 
 private:
     void showTip(QLabel *label, const QString &tip, bool err = true);
+    void processLoginSuccess(const QJsonObject &loginResponse);
+    void processChatServerInfo(const QJsonObject &clientInfo);
+    void processUserProfile(const QJsonObject &profileInfo);
     bool validateRegisterInput();
     bool validateResetConfirmInput();
     void switchToLoginPage();
@@ -64,6 +70,7 @@ private:
 private:
     Ui::LoginDialog *ui;
     QMap<ReqId, std::function<void(const QJsonObject&)>> _handlers;
+    ClientInfo m_clientInfo;
 
     // 密码可见性状态
     bool m_loginPasswordVisible = false;

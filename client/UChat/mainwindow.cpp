@@ -2,8 +2,6 @@
 #include <QDateTime>
 #include <QCloseEvent>
 #include <QMessageBox>
-#include <QSystemTrayIcon>
-#include <QMenu>
 #include <QIcon>
 #include <QInputDialog>
 #include <QFileDialog>
@@ -11,25 +9,28 @@
 #include <QPixmap>
 #include <QPainter>
 #include <QPainterPath>
-#include <QTextDocument>
 #include <QScrollBar>
-#include <QStandardItem>
 #include <QRandomGenerator>
 #include <QKeyEvent>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QStandardItemModel>
+#include <QListWidgetItem>
 
 #include "mainwindow.hpp"
 #include "./ui_mainwindow.h"
 #include "logindialog.hpp"
 #include "HttpMgr.h"
+#include "ChatManager.h"
+#include "ContactManager.h"
+#include "ChatUIManager.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_currentChatUid(0)
-    , m_currentUserId(0)
     , m_isConnected(false)
     , m_contactsModel(nullptr)
-    , m_chatConnection(nullptr)
     , m_trayIcon(nullptr)
 {
     ui->setupUi(this);
@@ -47,7 +48,6 @@ MainWindow::MainWindow(QWidget *parent)
     // 初始化UI和事件处理
     initUI();
     initTrayIcon();
-    initModels();
     setupSignalsAndSlots();
     
     // 默认显示聊天页面
@@ -56,15 +56,14 @@ MainWindow::MainWindow(QWidget *parent)
     
     // 添加事件过滤器用于处理特定的键盘事件
     ui->messageInputEdit->installEventFilter(this);
+    
+    // 初始化聊天UI管理器
+    auto chatUIManager = ChatUIManager::getInstance();
+    chatUIManager->initUI(ui->conversationsListWidget, ui->messageDisplayBrowser, ui->chatTargetNameLabel);
 }
 
 MainWindow::~MainWindow()
 {
-    if (m_chatConnection) {
-        m_chatConnection->disconnect();
-        delete m_chatConnection;
-    }
-    
     delete ui;
 }
 
@@ -82,8 +81,10 @@ void MainWindow::initUI()
     // 确保分割器的初始位置合理
     ui->chatSplitter->setSizes(QList<int>() << 250 << 550);
     
-    // 初始化会话列表为空
-    ui->conversationsListWidget->clear();
+    // 创建联系人模型
+    m_contactsModel = new QStandardItemModel(this);
+    m_contactsModel->setHorizontalHeaderLabels(QStringList() << "联系人");
+    ui->contactsTreeView->setModel(m_contactsModel);
     
     // 初始化消息显示区域
     ui->messageDisplayBrowser->clear();
@@ -95,6 +96,7 @@ void MainWindow::initUI()
     ui->messageInputEdit->setFocus();
 }
 
+// 初始化系统托盘图标
 void MainWindow::initTrayIcon()
 {
     m_trayIcon = new QSystemTrayIcon(this);
@@ -114,142 +116,195 @@ void MainWindow::initTrayIcon()
     connect(m_trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
 }
 
-void MainWindow::initModels()
-{
-    // 初始化联系人模型
-    m_contactsModel = new QStandardItemModel(this);
-    ui->contactsTreeView->setModel(m_contactsModel);
-    
-    // 设置联系人模型的列
-    m_contactsModel->setHorizontalHeaderLabels(QStringList() << "联系人");
-}
-
-void MainWindow::initChatConnection()
-{
-    if (m_chatConnection) {
-        delete m_chatConnection;
-    }
-    
-    m_chatConnection = new ChatConnection(this);
-    
-    // 连接信号槽
-    connect(m_chatConnection, &ChatConnection::stateChanged, 
-            this, &MainWindow::onConnectionStateChanged);
-    connect(m_chatConnection, &ChatConnection::messageReceived, 
-            this, &MainWindow::onMessageReceived);
-    connect(m_chatConnection, &ChatConnection::messageSent, 
-            this, &MainWindow::onMessageSent);
-    connect(m_chatConnection, &ChatConnection::error, 
-            this, &MainWindow::onNetworkError);
-    
-    // 连接到服务器
-    if (!m_serverInfo.host.isEmpty()) {
-        QStringList hostParts = m_serverInfo.host.split(":");
-        if (hostParts.size() == 2) {
-            QString host = hostParts.at(0);
-            quint16 port = hostParts.at(1).toUInt();
-            m_chatConnection->connectToServer(host, port);
-        }
-    }
-}
-
-void MainWindow::showLoginDialog()
-{
-    LoginDialog dialog(this);
-    // 直接使用C++11的lambda表达式来连接信号
-    connect(&dialog, &LoginDialog::loginSuccess, 
-            [this](const ServerInfo &serverInfo) {
-                this->onLoginSuccess(serverInfo);
-            });
-    
-    // 对话框关闭时，如果仍未登陆，则关闭程序
-    if (dialog.exec() != QDialog::Accepted) {
-        // 检查是否已登录，如果没有则退出应用
-        if (m_currentUserId == 0) {
-            QApplication::quit();
-        }
-    }
-}
-
-void MainWindow::onLoginSuccess(const ServerInfo &serverInfo)
-{
-    // 保存服务器信息
-    m_serverInfo = serverInfo;
-    m_currentUserId = serverInfo.uid;
-    
-    // TODO: 从服务器获取用户信息
-    m_currentUserName = QString("用户%1").arg(serverInfo.uid);
-    m_currentUserAvatar = ""; // 默认头像
-    
-    // 初始化聊天连接
-    initChatConnection();
-    
-    // 加载会话和联系人数据
-    loadConversations();
-    loadContacts();
-    
-    // 更新UI
-    setWindowTitle(QString("UChat - %1").arg(m_currentUserName));
-    show();
-}
-
+// 设置信号和槽连接
 void MainWindow::setupSignalsAndSlots()
 {
-    // 连接导航按钮信号
+    // 导航按钮
     connect(ui->chatNavButton, &QToolButton::clicked, this, &MainWindow::onChatNavButtonClicked);
     connect(ui->contactsNavButton, &QToolButton::clicked, this, &MainWindow::onContactsNavButtonClicked);
     connect(ui->groupsNavButton, &QToolButton::clicked, this, &MainWindow::onGroupsNavButtonClicked);
     connect(ui->settingsNavButton, &QToolButton::clicked, this, &MainWindow::onSettingsNavButtonClicked);
     
-    // 连接会话列表信号
-    connect(ui->conversationsListWidget, &QListWidget::itemClicked, this, &MainWindow::onConversationSelected);
+    // 聊天功能
+    connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
+    connect(ui->messageInputEdit, &QTextEdit::textChanged, this, &MainWindow::onMessageInputTextChanged);
+    connect(ui->emojiButton, &QPushButton::clicked, this, &MainWindow::onEmojiButtonClicked);
+    connect(ui->fileButton, &QPushButton::clicked, this, &MainWindow::onFileButtonClicked);
+    connect(ui->screenshotButton, &QPushButton::clicked, this, &MainWindow::onScreenshotButtonClicked);
     
-    // 连接搜索框信号
+    // 搜索功能
     connect(ui->searchConversationsLineEdit, &QLineEdit::textChanged, this, &MainWindow::onSearchConversations);
     connect(ui->searchContactsLineEdit, &QLineEdit::textChanged, this, &MainWindow::onSearchContacts);
     connect(ui->searchGroupsLineEdit, &QLineEdit::textChanged, this, &MainWindow::onSearchGroups);
     
-    // 连接聊天功能信号
-    connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
-    connect(ui->messageInputEdit, &QTextEdit::textChanged, this, &MainWindow::onMessageInputTextChanged);
-    connect(ui->emojiButton, &QToolButton::clicked, this, &MainWindow::onEmojiButtonClicked);
-    connect(ui->fileButton, &QToolButton::clicked, this, &MainWindow::onFileButtonClicked);
-    connect(ui->screenshotButton, &QToolButton::clicked, this, &MainWindow::onScreenshotButtonClicked);
-    
-    // 连接联系人信号
+    // 联系人功能
     connect(ui->contactsTreeView, &QTreeView::clicked, this, &MainWindow::onContactSelected);
     connect(ui->contactsTreeView, &QTreeView::customContextMenuRequested, this, &MainWindow::onContactContextMenu);
+    connect(ui->addContactButton, &QPushButton::clicked, this, &MainWindow::onAddContactClicked);
+    
+    // 初始设置
+    ui->conversationsListWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->contactsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    
+    // 连接ChatUIManager信号
+    auto chatUIManager = ChatUIManager::getInstance();
+    connect(chatUIManager.get(), &ChatUIManager::conversationSelected, [this](uint64_t uid) {
+        // 处理会话选择事件
+    });
+    
+    // 连接ContactManager信号
+    auto contactManager = ContactManager::getInstance();
+    connect(contactManager.get(), &ContactManager::contactsUpdated, [this]() {
+        // 更新联系人树视图
+        updateContactsView();
+    });
+    
+    connect(contactManager.get(), &ContactManager::userSearchCompleted, [this](const QJsonArray &users) {
+        // 显示搜索用户结果
+        displaySearchUserResults(users);
+    });
+}
+
+// 显示登录对话框
+void MainWindow::showLoginDialog()
+{
+    LoginDialog dialog(this);
+
+    connect(&dialog, &LoginDialog::loginSuccess, 
+            [this](const ClientInfo &clientInfo) {
+                this->onLoginSuccess(clientInfo);
+            });
+    
+    // 对话框关闭时，如果仍未登陆，则关闭程序
+    if (dialog.exec() != QDialog::Accepted) {
+        // 检查是否已登录
+        if (!m_isConnected) {
+            QApplication::quit();
+        }
+    }
+}
+
+void MainWindow::onLoginSuccess(const ClientInfo &clientInfo)
+{
+    // 保存服务器信息
+    m_clientInfo = clientInfo;
+    
+    // 使用ChatManager连接到聊天服务器
+    auto chatManager = ChatManager::getInstance();
+    
+    // 连接ChatManager的信号
+    connect(chatManager.get(), &ChatManager::connected, this, [this, chatManager]() {
+        qDebug() << "聊天服务器连接成功";
+        updateConnectionStatus(false, "已连接，正在认证...");
+        
+        // 连接成功后进行认证
+        if (!chatManager->authenticate(m_clientInfo.uid, m_clientInfo.token)) {
+            qWarning() << "认证请求发起失败";
+            updateConnectionStatus(false, "认证请求失败");
+            QMessageBox::warning(this, "认证错误", "无法发起认证请求，请稍后重试");
+        }
+    });
+    
+    connect(chatManager.get(), &ChatManager::authenticated, this, [this]() {
+        qDebug() << "聊天服务器认证成功";
+        // 更新UI显示连接状态
+        m_isConnected = true;
+        updateConnectionStatus(true);
+        
+        // 初始化管理器
+        auto chatUIManager = ChatUIManager::getInstance();
+        chatUIManager->setCurrentUserInfo(m_clientInfo.uid, m_clientInfo.userProfile.nickname.isEmpty() ? 
+                                         m_clientInfo.userProfile.username : m_clientInfo.userProfile.nickname);
+        
+        // 获取联系人列表
+        auto contactManager = ContactManager::getInstance();
+        contactManager->getContacts(m_clientInfo.uid, m_clientInfo.token);
+        
+        // 显示主窗口
+        this->show();
+        this->activateWindow();
+        this->raise();
+    });
+    
+    connect(chatManager.get(), &ChatManager::error, this, [this](const QString &errorMessage) {
+        qDebug() << "聊天连接错误: " << errorMessage;
+        // 更新UI以显示错误状态
+        m_isConnected = false;
+        updateConnectionStatus(false);
+        // 显示错误信息
+        QMessageBox::warning(this, "连接错误", "与聊天服务器连接出现问题：" + errorMessage);
+    });
+    
+    // 连接消息相关信号
+    connect(chatManager.get(), &ChatManager::messageReceived, this, 
+            &MainWindow::onMessageReceived);
+    
+    connect(chatManager.get(), &ChatManager::messageSent, this, 
+            &MainWindow::onMessageSent);
+    
+    // 连接心跳相关信号
+    connect(chatManager.get(), &ChatManager::heartbeatTimeout, this, [this]() {
+        qDebug() << "心跳超时，连接可能不稳定";
+        // 可以在界面上显示连接不稳定的提示
+        updateConnectionStatus(false, "连接不稳定");
+    });
+    
+    connect(chatManager.get(), &ChatManager::disconnected, this, [this]() {
+        qDebug() << "与服务器断开连接";
+        m_isConnected = false;
+        updateConnectionStatus(false);
+    });
+    
+    // 连接到聊天服务器
+    QStringList hostParts = m_clientInfo.host.split(":");
+    QString host;
+    quint16 port;
+    
+    if (hostParts.size() == 2) {
+        host = hostParts.at(0);
+        port = hostParts.at(1).toUInt();
+    } else {
+        host = m_clientInfo.host;
+        port = m_clientInfo.port.toUInt();
+    }
+    
+    // 发起连接请求
+    if (!chatManager->connectToServer(host, port)) {
+        qDebug() << "发起聊天服务器连接请求失败";
+        updateConnectionStatus(false, "连接请求失败");
+        QMessageBox::critical(this, "连接错误", "无法发起到聊天服务器的连接请求，请检查网络设置");
+    } else {
+        // 连接请求已发起，但连接可能还未建立
+        // 实际连接状态会通过connected信号通知
+        updateConnectionStatus(false, "正在连接...");
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // 如果托盘图标可用，则最小化到托盘而不是关闭程序
+    if (m_trayIcon && m_trayIcon->isVisible()) {
+        hide();
+        event->ignore();
+    } else {
+        QMainWindow::closeEvent(event);
+        event->accept();
+    }
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == ui->messageInputEdit) {
         if (event->type() == QEvent::KeyPress) {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-            if (keyEvent->key() == Qt::Key_Return && keyEvent->modifiers() == Qt::NoModifier) {
-                // 按下回车键发送消息
+            QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Return && !(keyEvent->modifiers() & Qt::ShiftModifier)) {
+                // 按下回车键发送消息，按下Shift+回车换行
                 onSendButtonClicked();
-                return true;
-            } else if (keyEvent->key() == Qt::Key_Return && keyEvent->modifiers() == Qt::ShiftModifier) {
-                // Shift+回车插入换行
-                ui->messageInputEdit->insertPlainText("\n");
                 return true;
             }
         }
     }
-    
     return QMainWindow::eventFilter(obj, event);
-}
-
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    if (m_trayIcon && m_trayIcon->isVisible()) {
-        // 隐藏到系统托盘而不是退出
-        hide();
-        event->ignore();
-    } else {
-        event->accept();
-    }
 }
 
 // 导航按钮事件处理
@@ -293,342 +348,36 @@ void MainWindow::onSettingsNavButtonClicked()
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting-pressed.svg"));
 }
 
-// 聊天相关功能实现
-void MainWindow::loadConversations()
-{
-    // 清空当前会话列表
-    ui->conversationsListWidget->clear();
-    m_conversations.clear();
-    
-    // TODO: 从服务器获取会话列表
-    // 暂时添加一些模拟数据用于开发
-    
-    // 添加一些测试会话
-    Conversation conv1;
-    conv1.uid = 10001;
-    conv1.name = "张三";
-    conv1.lastMessage = "下午有空吗？";
-    conv1.lastMessageTime = QDateTime::currentDateTime().addSecs(-3600).toSecsSinceEpoch(); // 1小时前
-    conv1.unreadCount = 2;
-    m_conversations[conv1.uid] = conv1;
-    
-    Conversation conv2;
-    conv2.uid = 10002;
-    conv2.name = "李四";
-    conv2.lastMessage = "文件我已经发送给你了";
-    conv2.lastMessageTime = QDateTime::currentDateTime().addSecs(-7200).toSecsSinceEpoch(); // 2小时前
-    conv2.unreadCount = 0;
-    m_conversations[conv2.uid] = conv2;
-    
-    Conversation conv3;
-    conv3.uid = 10003;
-    conv3.name = "项目群";
-    conv3.lastMessage = "王五: 明天记得开会";
-    conv3.lastMessageTime = QDateTime::currentDateTime().addDays(-1).toSecsSinceEpoch(); // 昨天
-    conv3.unreadCount = 5;
-    m_conversations[conv3.uid] = conv3;
-    
-    // 更新UI
-    updateConversationList();
-}
-
-void MainWindow::updateConversationList()
-{
-    ui->conversationsListWidget->clear();
-    
-    // 对会话按最后消息时间进行排序（最新的在前面）
-    QList<uint64_t> sortedKeys;
-    for (auto it = m_conversations.begin(); it != m_conversations.end(); ++it) {
-        sortedKeys.append(it.key());
-    }
-    
-    std::sort(sortedKeys.begin(), sortedKeys.end(), [this](uint64_t a, uint64_t b) {
-        return m_conversations[a].lastMessageTime > m_conversations[b].lastMessageTime;
-    });
-    
-    // 添加排序后的会话到列表
-    for (uint64_t uid : sortedKeys) {
-        createConversationItem(m_conversations[uid]);
-    }
-}
-
-void MainWindow::createConversationItem(const Conversation &conversation)
-{
-    QListWidgetItem *item = new QListWidgetItem(ui->conversationsListWidget);
-    item->setData(Qt::UserRole, QVariant::fromValue(conversation.uid));
-    
-    // 创建包含头像、名称、最后消息和时间的复杂项目
-    QWidget *itemWidget = new QWidget(ui->conversationsListWidget);
-    QHBoxLayout *layout = new QHBoxLayout(itemWidget);
-    
-    // 头像
-    QLabel *avatarLabel = new QLabel(itemWidget);
-    avatarLabel->setFixedSize(40, 40);
-    QPixmap avatarPixmap = createAvatarPixmap(conversation.avatarPath);
-    avatarLabel->setPixmap(avatarPixmap);
-    avatarLabel->setScaledContents(true);
-    
-    // 名称、消息和时间的垂直布局
-    QVBoxLayout *textLayout = new QVBoxLayout();
-    textLayout->setSpacing(2);
-    
-    // 第一行：名称和时间
-    QHBoxLayout *nameTimeLayout = new QHBoxLayout();
-    QLabel *nameLabel = new QLabel(conversation.name, itemWidget);
-    nameLabel->setStyleSheet("font-weight: bold;");
-    
-    QLabel *timeLabel = new QLabel(formatMessageTime(conversation.lastMessageTime), itemWidget);
-    timeLabel->setStyleSheet("color: gray; font-size: 9pt;");
-    timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    
-    nameTimeLayout->addWidget(nameLabel);
-    nameTimeLayout->addWidget(timeLabel);
-    
-    // 第二行：最后消息和未读数
-    QHBoxLayout *msgCountLayout = new QHBoxLayout();
-    QLabel *msgLabel = new QLabel(conversation.lastMessage, itemWidget);
-    msgLabel->setStyleSheet("color: gray; font-size: 9pt;");
-    msgLabel->setMaximumWidth(200);
-    
-    // 文本省略
-    QString elidedText = msgLabel->fontMetrics().elidedText(
-        conversation.lastMessage, Qt::ElideRight, msgLabel->maximumWidth());
-    msgLabel->setText(elidedText);
-    
-    QLabel *countLabel = nullptr;
-    if (conversation.unreadCount > 0) {
-        countLabel = new QLabel(QString::number(conversation.unreadCount), itemWidget);
-        countLabel->setStyleSheet(
-            "background-color: #FF3B30; color: white; border-radius: 9px; "
-            "min-width: 18px; max-width: 18px; min-height: 18px; max-height: 18px; "
-            "font-size: 8pt; font-weight: bold; padding: 0px;"
-        );
-        countLabel->setAlignment(Qt::AlignCenter);
-    } else {
-        countLabel = new QLabel(itemWidget);
-        countLabel->setFixedSize(18, 18);
-    }
-    
-    msgCountLayout->addWidget(msgLabel);
-    msgCountLayout->addWidget(countLabel);
-    
-    // 添加两行到垂直布局
-    textLayout->addLayout(nameTimeLayout);
-    textLayout->addLayout(msgCountLayout);
-    
-    // 组装完整布局
-    layout->addWidget(avatarLabel);
-    layout->addLayout(textLayout, 1);
-    layout->setContentsMargins(5, 5, 5, 5);
-    itemWidget->setLayout(layout);
-    
-    // 设置项高度
-    item->setSizeHint(itemWidget->sizeHint());
-    
-    // 将自定义小部件设置为项目
-    ui->conversationsListWidget->setItemWidget(item, itemWidget);
-}
-
-void MainWindow::onConversationSelected(QListWidgetItem *item)
-{
-    if (!item) return;
-    
-    uint64_t uid = item->data(Qt::UserRole).toULongLong();
-    if (m_conversations.contains(uid)) {
-        // 更新当前聊天对象
-        m_currentChatUid = uid;
-        Conversation &conversation = m_conversations[uid];
-        
-        // 更新标题
-        ui->chatTargetNameLabel->setText(conversation.name);
-        
-        // 重置未读消息计数
-        conversation.unreadCount = 0;
-        
-        // 更新会话列表项以反映未读数的变化
-        updateConversationList();
-        
-        // 加载聊天历史
-        loadChatHistory(uid);
-    }
-}
-
-void MainWindow::loadChatHistory(uint64_t uid)
-{
-    // 清空消息显示区域
-    ui->messageDisplayBrowser->clear();
-    
-    if (m_conversations.contains(uid)) {
-        // TODO: 从服务器获取完整聊天历史
-        
-        // 如果本地已有消息，显示它们
-        const QList<ChatMessage> &messages = m_conversations[uid].messages;
-        for (const ChatMessage &msg : messages) {
-            displayMessage(msg);
-        }
-        
-        // 如果没有本地消息，添加一些测试消息
-        if (messages.isEmpty()) {
-            // 添加一些模拟消息用于开发
-            QList<ChatMessage> testMessages;
-            
-            ChatMessage msg1;
-            msg1.senderId = m_currentUserId;
-            msg1.receiverId = uid;
-            msg1.content = "你好！";
-            msg1.type = "text";
-            msg1.timestamp = QDateTime::currentDateTime().addSecs(-3600).toSecsSinceEpoch();
-            msg1.isOutgoing = true;
-            testMessages.append(msg1);
-            
-            ChatMessage msg2;
-            msg2.senderId = uid;
-            msg2.receiverId = m_currentUserId;
-            msg2.content = "你好，最近怎么样？";
-            msg2.type = "text";
-            msg2.timestamp = QDateTime::currentDateTime().addSecs(-3500).toSecsSinceEpoch();
-            msg2.isOutgoing = false;
-            testMessages.append(msg2);
-            
-            ChatMessage msg3;
-            msg3.senderId = m_currentUserId;
-            msg3.receiverId = uid;
-            msg3.content = "一切都好，你呢？";
-            msg3.type = "text";
-            msg3.timestamp = QDateTime::currentDateTime().addSecs(-3400).toSecsSinceEpoch();
-            msg3.isOutgoing = true;
-            testMessages.append(msg3);
-            
-            // 显示测试消息
-            for (const ChatMessage &msg : testMessages) {
-                displayMessage(msg);
-                m_conversations[uid].messages.append(msg);
-            }
-        }
-    }
-    
-    // 滚动到底部
-    scrollToBottom();
-}
-
-void MainWindow::displayMessage(const ChatMessage &message)
-{
-    addMessageToBrowser(message);
-}
-
-void MainWindow::addMessageToBrowser(const ChatMessage &message)
-{
-    QTextCursor cursor(ui->messageDisplayBrowser->document());
-    cursor.movePosition(QTextCursor::End);
-    
-    // 在每条消息之间添加一些垂直空间
-    QTextBlockFormat blockFormat;
-    blockFormat.setTopMargin(8);
-    cursor.insertBlock(blockFormat);
-    
-    // 确定消息发送者的名称和颜色
-    QString senderName;
-    QString bubbleStyle;
-    Qt::Alignment alignment;
-    
-    if (message.isOutgoing) {
-        senderName = m_currentUserName;
-        alignment = Qt::AlignRight;
-        bubbleStyle = "background-color: #DCF8C6; border-radius: 8px; padding: 8px; margin-left: 80px; margin-right: 10px;";
-    } else {
-        // 查找联系人名称
-        if (m_contacts.contains(message.senderId)) {
-            senderName = m_contacts[message.senderId].name;
-        } else if (m_conversations.contains(message.senderId)) {
-            senderName = m_conversations[message.senderId].name;
-        } else {
-            senderName = QString("用户%1").arg(message.senderId);
-        }
-        alignment = Qt::AlignLeft;
-        bubbleStyle = "background-color: #FFFFFF; border-radius: 8px; padding: 8px; margin-right: 80px; margin-left: 10px;";
-    }
-    
-    // 格式化时间
-    QString timeStr = formatMessageTime(message.timestamp);
-    
-    // 创建RTF文档片段
-    QString html = QString(
-        "<div style='margin: 5px;'>"
-        "   <div style='%1'>"
-        "       <div style='font-size: 9pt; color: #888888;'>%2</div>"
-        "       <div>%3</div>"
-        "       <div style='font-size: 8pt; color: #888888; text-align: right;'>%4</div>"
-        "   </div>"
-        "</div>"
-    ).arg(bubbleStyle, senderName, message.content, timeStr);
-    
-    // 插入HTML
-    cursor.insertHtml(html);
-    
-    // 滚动到底部
-    scrollToBottom();
-}
-
-void MainWindow::scrollToBottom()
-{
-    QScrollBar *scrollBar = ui->messageDisplayBrowser->verticalScrollBar();
-    scrollBar->setValue(scrollBar->maximum());
-}
-
-QString MainWindow::formatMessageTime(qint64 timestamp)
-{
-    QDateTime messageTime = QDateTime::fromSecsSinceEpoch(timestamp);
-    QDateTime now = QDateTime::currentDateTime();
-    QDateTime today = QDateTime(now.date(), QTime(0, 0, 0));
-    QDateTime yesterday = today.addDays(-1);
-    
-    if (messageTime >= today) {
-        // 今天 - 显示时间
-        return messageTime.toString("HH:mm");
-    } else if (messageTime >= yesterday) {
-        // 昨天 - 显示昨天和时间
-        return QString("昨天 %1").arg(messageTime.toString("HH:mm"));
-    } else if (messageTime.date().year() == now.date().year()) {
-        // 今年 - 显示月日和时间
-        return messageTime.toString("MM-dd HH:mm");
-    } else {
-        // 其他 - 显示完整日期和时间
-        return messageTime.toString("yyyy-MM-dd HH:mm");
-    }
-}
-
+// 聊天功能实现
 void MainWindow::onSendButtonClicked()
 {
     QString message = ui->messageInputEdit->toPlainText().trimmed();
-    if (message.isEmpty() || m_currentChatUid == 0) {
-        return; // 不发送空消息或无聊天对象
+    if (message.isEmpty()) {
+        return; // 不发送空消息
+    }
+    
+    auto chatUIManager = ChatUIManager::getInstance();
+    uint64_t currentChatUid = chatUIManager->getCurrentChatUid();
+    if (currentChatUid == 0) {
+        return; // 无聊天对象
     }
     
     // 创建消息对象
     ChatMessage chatMessage;
-    chatMessage.senderId = m_currentUserId;
-    chatMessage.receiverId = m_currentChatUid;
+    chatMessage.senderId = m_clientInfo.uid;
+    chatMessage.receiverId = currentChatUid;
     chatMessage.content = message;
     chatMessage.type = "text";
-    chatMessage.timestamp = QDateTime::currentDateTime().toSecsSinceEpoch();
+    chatMessage.timestamp = QDateTime::currentSecsSinceEpoch();
     chatMessage.isOutgoing = true;
     
-    // 显示消息
-    displayMessage(chatMessage);
-    
-    // 添加到会话消息历史
-    if (m_conversations.contains(m_currentChatUid)) {
-        m_conversations[m_currentChatUid].messages.append(chatMessage);
-        m_conversations[m_currentChatUid].lastMessage = message;
-        m_conversations[m_currentChatUid].lastMessageTime = chatMessage.timestamp;
-        
-        // 更新会话列表
-        updateConversationList();
-    }
+    // 添加消息到UI
+    chatUIManager->addMessage(currentChatUid, chatMessage);
     
     // 发送到服务器
-    if (m_chatConnection && m_chatConnection->isAuthenticated()) {
-        m_chatConnection->sendChatMessage(m_currentChatUid, message);
+    auto chatManager = ChatManager::getInstance();
+    if (chatManager->isAuthenticated()) {
+        chatManager->sendMessage(currentChatUid, message);
     }
     
     // 清空输入框
@@ -673,196 +422,207 @@ void MainWindow::onScreenshotButtonClicked()
 
 void MainWindow::onSearchConversations(const QString &text)
 {
-    if (text.isEmpty()) {
-        // 显示所有会话
-        updateConversationList();
-        return;
-    }
-    
     // 筛选匹配的会话
-    ui->conversationsListWidget->clear();
+    auto chatUIManager = ChatUIManager::getInstance();
+    auto conversations = chatUIManager->getConversations();
     
-    for (auto it = m_conversations.begin(); it != m_conversations.end(); ++it) {
+    QMap<uint64_t, Conversation> filteredConversations;
+    for (auto it = conversations.begin(); it != conversations.end(); ++it) {
         if (it.value().name.contains(text, Qt::CaseInsensitive) || 
             it.value().lastMessage.contains(text, Qt::CaseInsensitive)) {
-            createConversationItem(it.value());
+            filteredConversations[it.key()] = it.value();
+        }
+    }
+    
+    // 更新UI
+    chatUIManager->loadConversations(filteredConversations);
+}
+
+void MainWindow::onContactSelected(const QModelIndex &index)
+{
+    // 获取用户ID
+    QVariant userData = index.data(Qt::UserRole);
+    if (userData.isValid()) {
+        uint64_t uid = userData.toULongLong();
+        
+        // 获取联系人信息
+        auto contactManager = ContactManager::getInstance();
+        Contact contact;
+        if (contactManager->getContactInfo(uid, contact)) {
+            // 开始聊天
+            auto chatUIManager = ChatUIManager::getInstance();
+            chatUIManager->startNewChat(uid, contact.name, contact.avatarPath);
+            
+            // 切换到聊天页面
+            onChatNavButtonClicked();
         }
     }
 }
 
-// 消息处理
+void MainWindow::onAddContactClicked()
+{
+    // 弹出添加联系人对话框
+    bool ok;
+    QString searchText = QInputDialog::getText(this, "搜索用户", 
+                                         "请输入用户ID、用户名或邮箱:", 
+                                         QLineEdit::Normal, 
+                                         "", &ok);
+    if (ok && !searchText.isEmpty()) {
+        // 向服务器发送搜索请求
+        auto contactManager = ContactManager::getInstance();
+        contactManager->searchUser(m_clientInfo.uid, m_clientInfo.token, searchText);
+    }
+}
+
+void MainWindow::onContactContextMenu(const QPoint &pos)
+{
+    QModelIndex index = ui->contactsTreeView->indexAt(pos);
+    if (index.isValid() && index.data(Qt::UserRole).isValid()) {
+        uint64_t uid = index.data(Qt::UserRole).toULongLong();
+        
+        // 获取联系人信息
+        auto contactManager = ContactManager::getInstance();
+        Contact contact;
+        if (!contactManager->getContactInfo(uid, contact)) {
+            return;
+        }
+        
+        QMenu contextMenu(this);
+        QAction *chatAction = contextMenu.addAction("发起聊天");
+        QAction *profileAction = contextMenu.addAction("查看资料");
+        
+        QAction *selectedAction = contextMenu.exec(ui->contactsTreeView->viewport()->mapToGlobal(pos));
+        
+        if (selectedAction == chatAction) {
+            // 开始聊天
+            auto chatUIManager = ChatUIManager::getInstance();
+            chatUIManager->startNewChat(uid, contact.name, contact.avatarPath);
+            
+            // 切换到聊天页面
+            onChatNavButtonClicked();
+        } else if (selectedAction == profileAction) {
+            // 显示联系人信息
+            QString info = QString("用户名: %1\n状态: %2\n签名: %3")
+                           .arg(contact.name)
+                           .arg(contact.status)
+                           .arg(contact.signature.isEmpty() ? "无" : contact.signature);
+            QMessageBox::information(this, "联系人资料", info);
+        }
+    }
+}
+
+void MainWindow::onSearchContacts(const QString &text)
+{
+    // 实现联系人搜索
+    if (text.isEmpty()) {
+        // 显示所有联系人
+        updateContactsView();
+        return;
+    }
+    
+    // 筛选匹配的联系人
+    auto contactManager = ContactManager::getInstance();
+    const auto &allContacts = contactManager->getAllContacts();
+    
+    // 清空当前模型
+    m_contactsModel->clear();
+    m_contactsModel->setHorizontalHeaderLabels(QStringList() << "联系人");
+    
+    QStandardItem *searchResults = new QStandardItem("搜索结果");
+    searchResults->setEditable(false);
+    m_contactsModel->appendRow(searchResults);
+    
+    // 添加匹配的联系人
+    for (auto it = allContacts.begin(); it != allContacts.end(); ++it) {
+        if (it.value().name.contains(text, Qt::CaseInsensitive) || 
+            it.value().status.contains(text, Qt::CaseInsensitive) ||
+            it.value().signature.contains(text, Qt::CaseInsensitive)) {
+            QStandardItem *item = contactManager->createContactItem(it.value());
+            searchResults->appendRow(item);
+        }
+    }
+    
+    // 展开搜索结果
+    ui->contactsTreeView->expandAll();
+}
+
+void MainWindow::onSearchGroups(const QString &text)
+{
+    // TODO: 实现群组搜索
+}
+
+// 系统托盘功能
+void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    switch (reason) {
+        case QSystemTrayIcon::Trigger:
+        case QSystemTrayIcon::DoubleClick:
+            if (isHidden()) {
+                show();
+                activateWindow();
+                raise();
+            } else {
+                hide();
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void MainWindow::onTrayActionTriggered()
+{
+    show();
+    activateWindow();
+    raise();
+}
+
+// 网络事件处理
 void MainWindow::onMessageReceived(uint64_t fromUid, const QString &content, const QString &msgType, qint64 timestamp)
 {
     // 创建新消息
     ChatMessage chatMessage;
     chatMessage.senderId = fromUid;
-    chatMessage.receiverId = m_currentUserId;
+    chatMessage.receiverId = m_clientInfo.uid;
     chatMessage.content = content;
     chatMessage.type = msgType;
     chatMessage.timestamp = timestamp;
     chatMessage.isOutgoing = false;
     
-    // 检查会话是否存在
-    if (!m_conversations.contains(fromUid)) {
-        // 创建新会话
-        Conversation newConversation;
-        newConversation.uid = fromUid;
-        
-        // 尝试从联系人获取名称
-        if (m_contacts.contains(fromUid)) {
-            newConversation.name = m_contacts[fromUid].name;
-            newConversation.avatarPath = m_contacts[fromUid].avatarPath;
-        } else {
-            newConversation.name = QString("用户%1").arg(fromUid);
-        }
-        
-        m_conversations[fromUid] = newConversation;
-    }
+    // 添加消息到UI
+    auto chatUIManager = ChatUIManager::getInstance();
+    chatUIManager->addMessage(fromUid, chatMessage);
     
-    // 更新会话最后消息
-    m_conversations[fromUid].lastMessage = content;
-    m_conversations[fromUid].lastMessageTime = timestamp;
-    m_conversations[fromUid].messages.append(chatMessage);
-    
-    // 如果不是当前会话，增加未读计数
-    if (fromUid != m_currentChatUid) {
-        m_conversations[fromUid].unreadCount++;
-        
-        // 显示通知
-        showNotification(m_conversations[fromUid].name, content);
+    // 显示通知
+    auto contactManager = ContactManager::getInstance();
+    Contact contact;
+    QString senderName;
+    if (contactManager->getContactInfo(fromUid, contact)) {
+        senderName = contact.name;
     } else {
-        // 如果是当前会话，直接显示消息
-        displayMessage(chatMessage);
+        senderName = QString("用户%1").arg(fromUid);
     }
-    
-    // 更新会话列表
-    updateConversationList();
+    showNotification(senderName, content);
 }
 
 void MainWindow::onMessageSent(uint64_t toUid, const QString &content, bool success, const QString &message)
 {
-    // 处理消息发送结果
     if (!success) {
-        QMessageBox::warning(this, "消息发送失败", message);
-        
-        // TODO: 在UI中标记消息发送失败
+        // 显示发送失败的提示
+        QMessageBox::warning(this, "消息发送失败", QString("消息发送失败: %1").arg(message));
     }
 }
 
-void MainWindow::showNotification(const QString &title, const QString &message)
+void MainWindow::onNetworkError(const QString &errorMessage)
 {
-    if (m_trayIcon && QSystemTrayIcon::supportsMessages()) {
-        m_trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 3000);
-    }
+    // 显示网络错误
+    QMessageBox::warning(this, "网络错误", errorMessage);
 }
 
-void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+// 辅助方法
+void MainWindow::updateContactsView()
 {
-    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick) {
-        // 单击或双击托盘图标时显示窗口
-        this->show();
-        this->activateWindow();
-    }
-}
-
-QPixmap MainWindow::createAvatarPixmap(const QString &avatarPath, bool isOnline)
-{
-    QPixmap avatarPixmap;
-    
-    // 尝试加载头像图片
-    if (!avatarPath.isEmpty() && avatarPixmap.load(avatarPath)) {
-        // 头像图片加载成功
-    } else {
-        // 创建默认头像
-        avatarPixmap = QPixmap(40, 40);
-        avatarPixmap.fill(Qt::lightGray);
-        
-        QPainter painter(&avatarPixmap);
-        painter.setPen(Qt::NoPen);
-        
-        // 随机生成背景颜色 - 用QRandomGenerator替代qrand
-        QColor bgColor = QColor::fromHsv(QRandomGenerator::global()->bounded(360), 200, 200);
-        painter.setBrush(bgColor);
-        painter.drawEllipse(avatarPixmap.rect());
-        
-        // 绘制首字母
-        QString letter = "U";
-        if (!m_currentUserName.isEmpty()) {
-            letter = m_currentUserName.at(0).toUpper();
-        }
-        
-        painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 16, QFont::Bold));
-        painter.drawText(avatarPixmap.rect(), Qt::AlignCenter, letter);
-        painter.end();
-    }
-    
-    // 将头像做成圆形
-    QPixmap roundedPixmap(avatarPixmap.size());
-    roundedPixmap.fill(Qt::transparent);
-    
-    QPainter painter(&roundedPixmap);
-    painter.setRenderHint(QPainter::Antialiasing);
-    
-    QPainterPath path;
-    path.addEllipse(roundedPixmap.rect());
-    painter.setClipPath(path);
-    painter.drawPixmap(0, 0, avatarPixmap);
-    
-    // 如果需要，添加在线状态指示器
-    if (isOnline) {
-        painter.setBrush(Qt::green);
-        painter.setPen(Qt::white);
-        painter.drawEllipse(roundedPixmap.width() - 12, roundedPixmap.height() - 12, 10, 10);
-    }
-    
-    painter.end();
-    return roundedPixmap;
-}
-
-// 联系人管理功能
-void MainWindow::loadContacts()
-{
-    // 清空当前联系人列表
-    m_contacts.clear();
-    
-    // TODO: 从服务器获取联系人列表
-    // 暂时添加一些模拟数据用于开发
-    
-    Contact contact1;
-    contact1.uid = 10001;
-    contact1.name = "张三";
-    contact1.status = "在线";
-    contact1.isOnline = true;
-    m_contacts[contact1.uid] = contact1;
-    
-    Contact contact2;
-    contact2.uid = 10002;
-    contact2.name = "李四";
-    contact2.status = "正在工作";
-    contact2.isOnline = true;
-    m_contacts[contact2.uid] = contact2;
-    
-    Contact contact3;
-    contact3.uid = 10003;
-    contact3.name = "王五";
-    contact3.status = "离线";
-    contact3.isOnline = false;
-    m_contacts[contact3.uid] = contact3;
-    
-    Contact contact4;
-    contact4.uid = 10004;
-    contact4.name = "赵六";
-    contact4.status = "忙碌中";
-    contact4.isOnline = true;
-    m_contacts[contact4.uid] = contact4;
-    
-    // 更新界面
-    updateContactsModel();
-}
-
-void MainWindow::updateContactsModel()
-{
+    // 清空当前模型
     m_contactsModel->clear();
     m_contactsModel->setHorizontalHeaderLabels(QStringList() << "联系人");
     
@@ -874,9 +634,13 @@ void MainWindow::updateContactsModel()
     offlineGroup->setEditable(false);
     m_contactsModel->appendRow(offlineGroup);
     
+    // 获取所有联系人
+    auto contactManager = ContactManager::getInstance();
+    const auto &contacts = contactManager->getAllContacts();
+    
     // 添加联系人
-    for (auto it = m_contacts.begin(); it != m_contacts.end(); ++it) {
-        QStandardItem *item = createContactItem(it.value());
+    for (auto it = contacts.begin(); it != contacts.end(); ++it) {
+        QStandardItem *item = contactManager->createContactItem(it.value());
         
         if (it.value().isOnline) {
             onlineGroup->appendRow(item);
@@ -889,211 +653,64 @@ void MainWindow::updateContactsModel()
     ui->contactsTreeView->expandAll();
 }
 
-QStandardItem* MainWindow::createContactItem(const Contact &contact)
+void MainWindow::displaySearchUserResults(const QJsonArray &users)
 {
-    QStandardItem *item = new QStandardItem();
-    item->setData(QVariant::fromValue(contact.uid), Qt::UserRole);
-    
-    // 创建自定义小部件
-    QWidget *widget = new QWidget();
-    QHBoxLayout *layout = new QHBoxLayout(widget);
-    layout->setContentsMargins(2, 2, 2, 2);
-    
-    // 头像
-    QLabel *avatarLabel = new QLabel();
-    avatarLabel->setFixedSize(32, 32);
-    QPixmap avatarPixmap = createAvatarPixmap(contact.avatarPath, contact.isOnline);
-    avatarLabel->setPixmap(avatarPixmap);
-    
-    // 名称和状态
-    QVBoxLayout *textLayout = new QVBoxLayout();
-    textLayout->setSpacing(0);
-    
-    QLabel *nameLabel = new QLabel(contact.name);
-    nameLabel->setStyleSheet("font-weight: bold;");
-    
-    QLabel *statusLabel = new QLabel(contact.status);
-    statusLabel->setStyleSheet("color: gray; font-size: 9pt;");
-    
-    textLayout->addWidget(nameLabel);
-    textLayout->addWidget(statusLabel);
-    
-    layout->addWidget(avatarLabel);
-    layout->addLayout(textLayout, 1);
-    
-    // 设置项目文本，但它会被自定义小部件覆盖
-    item->setText(contact.name);
-    item->setEditable(false);
-    
-    return item;
-}
-
-void MainWindow::onContactSelected(const QModelIndex &index)
-{
-    // 获取用户ID
-    QVariant userData = index.data(Qt::UserRole);
-    if (userData.isValid()) {
-        uint64_t uid = userData.toULongLong();
-        
-        // 开始与该联系人的聊天
-        if (m_contacts.contains(uid)) {
-            startNewChat(uid, m_contacts[uid].name);
-        }
-    }
-}
-
-void MainWindow::startNewChat(uint64_t uid, const QString &name)
-{
-    // 检查是否已有会话
-    if (!m_conversations.contains(uid)) {
-        // 创建新会话
-        Conversation newConversation;
-        newConversation.uid = uid;
-        newConversation.name = name;
-        newConversation.lastMessageTime = QDateTime::currentDateTime().toSecsSinceEpoch();
-        newConversation.unreadCount = 0;
-        m_conversations[uid] = newConversation;
-        
-        // 更新会话列表
-        updateConversationList();
-    }
-    
-    // 切换到聊天页面
-    onChatNavButtonClicked();
-    
-    // 选择会话
-    for (int i = 0; i < ui->conversationsListWidget->count(); ++i) {
-        QListWidgetItem *item = ui->conversationsListWidget->item(i);
-        if (item->data(Qt::UserRole).toULongLong() == uid) {
-            ui->conversationsListWidget->setCurrentItem(item);
-            onConversationSelected(item);
-            break;
-        }
-    }
-}
-
-void MainWindow::onAddContactClicked()
-{
-    // 弹出添加联系人对话框
-    bool ok;
-    QString userId = QInputDialog::getText(this, "添加联系人", 
-                                         "请输入用户ID或邮箱:", 
-                                         QLineEdit::Normal, 
-                                         "", &ok);
-    if (ok && !userId.isEmpty()) {
-        // TODO: 向服务器发送添加联系人请求
-        QMessageBox::information(this, "添加联系人", 
-                               QString("添加联系人 %1 的请求已发送").arg(userId));
-    }
-}
-
-void MainWindow::onContactContextMenu(const QPoint &pos)
-{
-    QModelIndex index = ui->contactsTreeView->indexAt(pos);
-    if (index.isValid() && index.data(Qt::UserRole).isValid()) {
-        uint64_t uid = index.data(Qt::UserRole).toULongLong();
-        
-        QMenu contextMenu(this);
-        QAction *chatAction = contextMenu.addAction("发起聊天");
-        QAction *profileAction = contextMenu.addAction("查看资料");
-        QAction *deleteAction = contextMenu.addAction("删除联系人");
-        
-        QAction *selectedAction = contextMenu.exec(ui->contactsTreeView->viewport()->mapToGlobal(pos));
-        
-        if (selectedAction == chatAction) {
-            startNewChat(uid, m_contacts[uid].name);
-        } else if (selectedAction == profileAction) {
-            // TODO: 显示联系人资料
-            QMessageBox::information(this, "联系人资料", 
-                                  QString("查看联系人 %1 的资料").arg(m_contacts[uid].name));
-        } else if (selectedAction == deleteAction) {
-            // 确认删除
-            int result = QMessageBox::question(this, "删除联系人", 
-                                            QString("确定要删除联系人 %1 吗?").arg(m_contacts[uid].name), 
-                                            QMessageBox::Yes | QMessageBox::No);
-            
-            if (result == QMessageBox::Yes) {
-                // TODO: 向服务器发送删除联系人请求
-                m_contacts.remove(uid);
-                updateContactsModel();
-                QMessageBox::information(this, "删除联系人", "联系人已删除");
-            }
-        }
-    }
-}
-
-void MainWindow::onSearchContacts(const QString &text)
-{
-    if (text.isEmpty()) {
-        // 恢复完整联系人列表
-        updateContactsModel();
+    if (users.isEmpty()) {
+        QMessageBox::information(this, "搜索结果", "未找到匹配的用户");
         return;
     }
     
-    // 筛选匹配的联系人
-    m_contactsModel->clear();
-    m_contactsModel->setHorizontalHeaderLabels(QStringList() << "搜索结果");
+    // 创建用户列表菜单
+    QMenu userListMenu(this);
     
-    QStandardItem *resultGroup = new QStandardItem("匹配结果");
-    resultGroup->setEditable(false);
-    m_contactsModel->appendRow(resultGroup);
-    
-    for (auto it = m_contacts.begin(); it != m_contacts.end(); ++it) {
-        if (it.value().name.contains(text, Qt::CaseInsensitive) || 
-            it.value().status.contains(text, Qt::CaseInsensitive)) {
-            QStandardItem *item = createContactItem(it.value());
-            resultGroup->appendRow(item);
+    // 添加搜索结果
+    for (const QJsonValue &value : users) {
+        QJsonObject userObj = value.toObject();
+        
+        // 跳过自己
+        if (userObj["uid"].toVariant().toULongLong() == m_clientInfo.uid) {
+            continue;
         }
+        
+        QString displayName = userObj.contains("nickname") && !userObj["nickname"].toString().isEmpty() ? 
+                             userObj["nickname"].toString() : userObj["username"].toString();
+        
+        QString menuText = QString("%1 (%2)").arg(displayName, userObj["username"].toString());
+        QAction *action = userListMenu.addAction(menuText);
+        
+        // 连接点击事件
+        connect(action, &QAction::triggered, [this, userObj]() {
+            // 添加联系人
+            auto contactManager = ContactManager::getInstance();
+            uint64_t friendId = userObj["uid"].toVariant().toULongLong();
+            contactManager->addContact(m_clientInfo.uid, m_clientInfo.token, friendId);
+        });
     }
     
-    ui->contactsTreeView->expandAll();
+    // 如果没有搜索结果(除了自己)
+    if (userListMenu.actions().isEmpty()) {
+        QMessageBox::information(this, "搜索结果", "未找到匹配的用户");
+        return;
+    }
+    
+    // 显示菜单
+    userListMenu.exec(QCursor::pos());
 }
 
-void MainWindow::onSearchGroups(const QString &text)
+void MainWindow::showNotification(const QString &title, const QString &message)
 {
-    // TODO: 实现群组搜索
-    // 这里暂时不做具体实现，因为没有群组数据
-}
-
-// 网络连接相关功能
-void MainWindow::onConnectionStateChanged(ChatConnection::ConnectionState state)
-{
-    switch (state) {
-        case ChatConnection::Connected:
-            m_isConnected = true;
-            // 认证用户
-            m_chatConnection->authenticate(m_currentUserId, m_serverInfo.token);
-            break;
-            
-        case ChatConnection::Authenticated:
-            // 认证成功，可以开始发送消息
-            statusBar()->showMessage("已连接到服务器", 3000);
-            break;
-            
-        case ChatConnection::Disconnected:
-        case ChatConnection::Error:
-            m_isConnected = false;
-            statusBar()->showMessage("与服务器的连接已断开", 3000);
-            // 可以在这里添加重连逻辑
-            break;
-            
-        default:
-            break;
+    if (m_trayIcon) {
+        m_trayIcon->showMessage(title, message, QSystemTrayIcon::Information, 3000);
     }
 }
 
-void MainWindow::onNetworkError(const QString &errorMessage)
+void MainWindow::updateConnectionStatus(bool isConnected, const QString &statusMessage)
 {
-    statusBar()->showMessage(QString("网络错误: %1").arg(errorMessage), 5000);
-    // 可以在这里添加错误处理逻辑
-}
-
-void MainWindow::onTrayActionTriggered()
-{
-    if (isVisible()) {
-        hide();
-    } else {
-        show();
-        activateWindow();
-    }
+    m_isConnected = isConnected;
+    
+    // 更新UI显示连接状态
+    QString statusText = isConnected ? "已连接" : (statusMessage.isEmpty() ? "未连接" : statusMessage);
+    statusBar()->showMessage(statusText);
+    
+    // 可以在这里更新其他UI元素以反映连接状态
 }
