@@ -54,7 +54,7 @@ target_link_libraries(proto_lib PUBLIC
         gRPC::grpc++_reflection
 )
 target_include_directories(proto_lib PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${GENERATED_DIR}>
 )
 
 add_executable(UserServer
@@ -76,6 +76,10 @@ add_executable(UserServer
         src/RedisConnPool.h
         src/RedisMgr.cpp
         src/RedisMgr.h
+        src/MQGatewayClient.h
+        src/MQGatewayClient.cpp
+        src/StatusGrpcClient.h
+        src/StatusGrpcClient.cpp
 )
 
 target_link_libraries(UserServer PUBLIC

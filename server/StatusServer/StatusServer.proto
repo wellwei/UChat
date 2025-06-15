@@ -41,6 +41,8 @@ message RegisterChatServerRequest {
   string server_id = 1;
   string host = 2;
   string port = 3;
+  string message_queue_name = 4;      // 该ChatServer监听的消息队列名称
+  string notification_queue_name = 5; // 该ChatServer监听的通知队列名称
 }
 
 message RegisterChatServerResponse {
@@ -118,4 +120,6 @@ message GetUidChatServerResponse {
   string error_msg = 2;
   string host = 3;
   string port = 4;
+  string message_queue_name = 5;      // 该ChatServer监听的消息队列名称
+  string notification_queue_name = 6; // 该ChatServer监听的通知队列名称
 }

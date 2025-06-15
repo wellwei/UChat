@@ -24,6 +24,9 @@ enum ReqId {
     ID_ADD_CONTACT = 1008,
     ID_GET_CONTACTS = 1009,
     ID_SEARCH_USER = 1010,
+    ID_SEND_CONTACT_REQUEST = 1011,
+    ID_HANDLE_CONTACT_REQUEST = 1012,
+    ID_GET_CONTACT_REQUESTS = 1013,
 };
 
 // 错误码
@@ -34,8 +37,7 @@ enum ErrorCodes {
     INVALID_PARAMETER = 1003,
     TOO_MANY_REQUESTS = 1004,
     VERIFY_CODE_ERROR = 1005,
-    EMAIL_EXISTS = 1006,
-    USERNAME_EXISTS = 1007,
+    USER_EXISTS = 1006,
     MYSQL_ERROR = 1008,
     EMAIL_NOT_REGISTERED = 1009,
     USERNAME_NOT_REGISTERED = 1010,
@@ -57,10 +59,8 @@ inline const char *getErrorMessage(ErrorCodes code) {
             return "Too many requests";
         case VERIFY_CODE_ERROR:
             return "Verify code error";
-        case EMAIL_EXISTS:
-            return "Email already exists";
-        case USERNAME_EXISTS:
-            return "Username already exists";
+        case USER_EXISTS:
+            return "Username or Email already exists";
         case MYSQL_ERROR:
             return "MySQL error";
         case EMAIL_NOT_REGISTERED:
@@ -82,6 +82,13 @@ enum Modules {
     CHATMOD = 3
 };
 
+// 联系人请求状态
+enum ContactRequestStatus {
+    PENDING = 0,
+    ACCEPTED = 1,
+    REJECTED = 2
+};
+
 struct UserProfile {
     quint64 uid;
     QString username;
@@ -95,6 +102,18 @@ struct UserProfile {
     QString status;
     QString create_time;
     QString update_time;
+};
+
+struct ContactRequest {
+    quint64 request_id;
+    quint64 requester_id;
+    QString requester_name;
+    QString requester_nickname;
+    QString requester_avatar;
+    QString request_message;
+    ContactRequestStatus status;
+    QString created_at;
+    QString updated_at;
 };
 
 struct ClientInfo {

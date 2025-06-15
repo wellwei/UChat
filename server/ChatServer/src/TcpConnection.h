@@ -35,7 +35,7 @@ public:
     using MessageCallback = std::function<void(const TcpConnectionPtr&, const Message&)>;
     using CloseCallback = std::function<void(const TcpConnectionPtr&)>;
 
-    TcpConnection(asio::io_context& io_context, uint32_t timeout_seconds);
+    TcpConnection(asio::io_context& io_context, uint32_t timeout_seconds, const std::string &server_id);
 
     ~TcpConnection();
 
@@ -74,6 +74,7 @@ private:
     // Member variables
     tcp::socket socket_;
     std::string conn_id_;
+    std::string server_id_;
     uint64_t uid_ = 0; // Initialize UID to 0
     bool is_authenticated_;
 

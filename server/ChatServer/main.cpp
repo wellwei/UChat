@@ -1,6 +1,5 @@
 #include <iostream>
 #include <boost/asio.hpp>
-#include <boost/system/error_code.hpp>
 #include <memory>
 #include <thread>
 #include <signal.h>

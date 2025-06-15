@@ -3,7 +3,6 @@
 #include "TcpConnection.h"
 #include "ConnectionManager.h"
 #include "MessageHandler.h"
-#include "InterChatService.h"
 #include <boost/asio.hpp>
 #include <string>
 #include <grpcpp/grpcpp.h>
@@ -25,8 +24,10 @@ private:
     void handle_message(const TcpConnectionPtr& conn, const Message& msg) const;
     void handle_close(const TcpConnectionPtr& conn);
     void register_server();
-    void send_heartbeat();
-    void start_inter_chat_service();
+    void send_heartbeat();\
+    void init_mq_gateway();
+    void handle_mq_message(const std::string& routing_key, const std::string& message_type, 
+                          uint64_t target_user_id, uint64_t sender_user_id, const std::string& payload);
 
 private:
     asio::io_context &io_context_;
@@ -42,8 +43,7 @@ private:
     ConnectionManager connection_manager_;
     std::unique_ptr<MessageHandler> message_handler_;
     
-    // InterChatService相关
-    std::unique_ptr<InterChatServiceImpl> inter_chat_service_;
-    std::unique_ptr<grpc::Server> grpc_server_;
-    int grpc_port_;
+    // MQ相关
+    std::string message_queue_name_;
+    std::string notification_queue_name_;
 };

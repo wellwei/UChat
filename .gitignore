@@ -76,4 +76,4 @@ build/
 cmake-build-debug-qt/
 .idea/
 .vscode/
-
+.DS_Store

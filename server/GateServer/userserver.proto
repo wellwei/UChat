@@ -1,0 +1,213 @@
+syntax = "proto3";
+
+
+enum UserStatus {
+    OFFLINE = 0;
+    ONLINE = 1;
+    BUSY = 2;
+    AWAY = 3;
+    INVISIBLE = 4;
+    DND = 5;
+}
+
+enum UserGender {
+    OTHER = 0;
+    MALE = 1;
+    FEMALE = 2;
+}
+
+message UserProfile {
+    uint64 uid = 1;
+    string username = 2;
+    string nickname = 3;
+    string avatar_url = 4;
+    string email = 5;
+    string phone = 6;
+    UserGender gender = 7;
+    string signature = 8;
+    string location = 9;
+    UserStatus status = 10;
+    string create_time = 11;
+    string update_time = 12;
+}
+
+message VerifyCredentialsRequest {
+    string handle = 1;
+    string password = 2;
+}
+
+message VerifyCredentialsResponse {
+    bool success = 1;
+    string error_msg = 2;
+    uint64 uid = 3;
+    UserProfile user_profile = 4;
+    string token = 5;
+}
+
+message CreateUserRequest {
+    string username = 1;
+    string password = 2;
+    string email = 3;
+}
+
+message CreateUserResponse {
+    bool success = 1;
+    uint32 code = 2;
+    string error_msg = 3;
+    uint64 uid = 4;
+}
+
+message GetUserProfileRequest {
+    uint64 uid = 1;
+}
+
+message GetUserProfileResponse {
+    bool success = 1;
+    string error_msg = 2;
+    UserProfile user_profile = 3;
+}
+
+message UpdateUserProfileRequest {
+    uint64 uid = 1;
+    UserProfile user_profile = 2;
+}
+
+message UpdateUserProfileResponse {
+    bool success = 1;
+    string error_msg = 2;
+    UserProfile user_profile = 3;
+}
+
+message ResetPasswordRequest {
+    string email = 1;
+    string new_password = 2;
+}
+
+message ResetPasswordResponse {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+// 获取联系人列表请求
+message GetContactsRequest {
+    uint64 uid = 1;           // 用户ID
+}
+
+// 联系人信息
+message ContactInfo {
+    uint64 uid = 1;           // 联系人ID
+    string username = 2;      // 用户名
+    string nickname = 3;      // 昵称
+    string avatar_url = 4;    // 头像URL
+    UserStatus status = 5;    // 在线状态
+    string signature = 6;     // 个性签名
+}
+
+// 获取联系人列表响应
+message GetContactsResponse {
+    bool success = 1;
+    string error_msg = 2;
+    repeated ContactInfo contacts = 3;  // 联系人列表
+}
+
+// 查找用户请求
+message SearchUserRequest {
+    string keyword = 1;       // 搜索关键词 (用户名或邮箱)
+}
+
+// 查找用户响应
+message SearchUserResponse {
+    bool success = 1;
+    string error_msg = 2;
+    repeated UserProfile users = 3;   // 用户列表
+}
+
+// 联系人请求状态
+enum ContactRequestStatus {
+    PENDING = 0;
+    ACCEPTED = 1;
+    REJECTED = 2;
+}
+
+// 发送联系人请求
+message SendContactRequestArgs {
+    uint64 requester_id = 1;      // 请求发起者ID
+    uint64 addressee_id = 2;      // 请求接收者ID
+    string request_message = 3;   // 验证信息
+}
+
+message SendContactRequestReply {
+    bool success = 1;
+    string error_msg = 2;
+    uint64 request_id = 3;        // 请求ID
+}
+
+// 处理联系人请求
+message HandleContactRequestArgs {
+    uint64 request_id = 1;        // 请求ID
+    uint64 user_id = 2;           // 处理请求的用户ID
+    ContactRequestStatus action = 3;  // 接受或拒绝
+}
+
+message HandleContactRequestReply {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+// 获取联系人请求列表
+message GetContactRequestsArgs {
+    uint64 user_id = 1;           // 用户ID
+    ContactRequestStatus status = 2;  // 请求状态
+}
+
+message ContactRequestInfo {
+    uint64 request_id = 1;
+    uint64 requester_id = 2;
+    uint64 addressee_id = 10;      // 添加接收者ID
+    string requester_name = 3;
+    string requester_nickname = 4;
+    string requester_avatar = 5;
+    string request_message = 6;
+    ContactRequestStatus status = 7;
+    string created_at = 8;
+    string updated_at = 9;
+}
+
+message GetContactRequestsReply {
+    bool success = 1;
+    string error_msg = 2;
+    repeated ContactRequestInfo requests = 3;
+}
+
+// 用户服务
+service UserService {
+    // 验证用户凭证
+    rpc VerifyCredentials(VerifyCredentialsRequest) returns (VerifyCredentialsResponse) {}
+
+    // 创建用户
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+
+    // 获取用户资料
+    rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {}
+
+    // 更新用户资料
+    rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse) {}
+
+    // 重置密码
+    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {}
+
+    // 获取联系人列表
+    rpc GetContacts(GetContactsRequest) returns (GetContactsResponse) {}
+
+    // 搜索用户
+    rpc SearchUser(SearchUserRequest) returns (SearchUserResponse) {}
+
+    // 发送联系人请求
+    rpc SendContactRequest(SendContactRequestArgs) returns (SendContactRequestReply) {}
+
+    // 处理联系人请求
+    rpc HandleContactRequest(HandleContactRequestArgs) returns (HandleContactRequestReply) {}
+
+    // 获取联系人请求列表
+    rpc GetContactRequests(GetContactRequestsArgs) returns (GetContactRequestsReply) {}
+}

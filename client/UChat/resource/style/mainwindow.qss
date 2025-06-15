@@ -1,263 +1,378 @@
 /* ==================== 全局与基础 ==================== */
 * {
-    font-family: "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+    font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
     outline: none;
 }
 
 QMainWindow {
-    background-color: #FFFFFF; /* 固定为浅色背景 */
+    background-color: #FFFFFF;
+    color: #333333;
 }
 
 QWidget#centralWidget {
-    background-color: transparent; /* 中央区域透明，由子控件控制 */
+    background-color: transparent;
 }
 
 /* ==================== 左侧导航栏 ==================== */
 QWidget#sidebarWidget {
-    background-color: #F0F0F0;
-    border-right: 1px solid #DCDCDC;
+    background-color: #F8F9FA;
+    border-right: 1px solid #E0E4E7;
 }
 
 QLabel#avatarLabel {
-    border-radius: 20px; /* 圆形 */
-    background-color: #D0D0D0; /* 默认头像背景 */
+    border-radius: 20px;
+    background-color: #E8F4FD;
+    border: 2px solid #B8E6FF;
+    margin: 2px;
 }
 
 QLabel#avatarLabel:hover {
-    border: 1px solid #0078D4;
+    border: 2px solid #0078D4;
+    background-color: #DCEBFE;
 }
 
-/* 导航按钮通用样式 */
+/* 导航按钮现代化样式 */
 QToolButton[buttonGroup="navigationGroup"] {
     background-color: transparent;
     border: none;
-    border-radius: 5px; /* 轻微圆角 */
-    padding: 5px;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 2px;
+    min-width: 32px;
+    min-height: 32px;
 }
 
-/* 导航按钮悬停 */
 QToolButton[buttonGroup="navigationGroup"]:hover {
-    background-color: rgba(0, 0, 0, 0.05); /* 轻微灰色 */
+    background-color: rgba(0, 120, 212, 0.1);
+    border: 1px solid rgba(0, 120, 212, 0.15);
 }
 
-/* 导航按钮选中 */
 QToolButton[buttonGroup="navigationGroup"]:checked {
-    background-color: rgba(0, 120, 212, 0.15); /* 浅蓝色 */
+    background-color: #0078D4;
+    border: 1px solid #0078D4;
+    color: white;
+}
+
+QToolButton[buttonGroup="navigationGroup"]:pressed {
+    background-color: rgba(0, 120, 212, 0.2);
 }
 
 /* ==================== 内容区域 ==================== */
-/* 分割线 */
+QSplitter {
+    background-color: transparent;
+}
+
 QSplitter::handle {
-    background-color: #E0E0E0;
-    width: 1px;
-    margin: 0px; /* 确保紧密 */
+    background-color: #E8EAED;
+    width: 2px;
+    margin: 2px 0px;
+    border-radius: 1px;
 }
 
 QSplitter::handle:horizontal {
-    height: 1px;
-    width: 1px;
+    height: 2px;
+    width: 2px;
 }
 
 QSplitter::handle:hover {
-    background-color: #0078D4; /* 悬停时高亮 */
+    background-color: #0078D4;
 }
 
-/* 会话列表容器 */
+/* ==================== 搜索框现代化设计 ==================== */
 QWidget#conversationListWidgetContainer {
-    background-color: #FAFAFA;
-    border-right: 1px solid #EAEAEA;
+    background-color: #FAFBFC;
+    border-right: 1px solid #E8EAED;
 }
 
-/* 搜索框 */
 QLineEdit#searchConversationsLineEdit,
 QLineEdit#searchContactsLineEdit,
 QLineEdit#searchGroupsLineEdit {
-    border: 1px solid #E0E0E0;
-    border-radius: 15px; /* 圆角 */
-    padding: 5px 10px 5px 25px; /* 左边距给图标留位 */
+    border: 1px solid #E1E5E9;
+    border-radius: 20px;
+    padding: 8px 12px 8px 35px;
     background-color: #FFFFFF;
     color: #333333;
-    margin: 8px;
-    background-image: url(:/resource/image/search.svg); /* 使用项目中已有的图标 */
+    font-size: 12px;
+    margin: 10px;
+    min-height: 16px;
     background-repeat: no-repeat;
-    background-position: left 8px center;
+    background-position: left 10px center;
 }
 
 QLineEdit:focus {
-    border: 1px solid #0078D4;
+    border: 2px solid #0078D4;
+    background-color: #FAFEFF;
+    padding: 7px 11px 7px 34px;
 }
 
-/* 列表和树视图 */
+QLineEdit:hover {
+    border: 1px solid #B8C5D1;
+    background-color: #F8F9FA;
+}
+
+/* ==================== 会话列表现代化 ==================== */
 QListWidget, QTreeView {
     border: none;
     background-color: transparent;
     color: #333333;
-}
-
-QListWidget::item, QTreeView::item {
-    padding: 10px 12px; /* 增加内边距 */
-    min-height: 40px; /* 确保足够高度显示头像和多行文本 */
+    font-size: 13px;
+    alternate-background-color: #F9FAFB;
 }
 
 QListWidget::item {
-    border-bottom: 1px solid #F0F0F0;
+    padding: 12px 15px;
+    border-bottom: 1px solid #F0F2F5;
+    background-color: transparent;
 }
 
 QTreeView::item {
-    /* TreeView item 边框通常不需要 */
+    padding: 10px 15px;
+    min-height: 45px;
+    border-bottom: 1px solid #F0F2F5;
 }
 
-QListWidget::item:selected, QTreeView::item:selected {
-    background-color: #DCEBFE;
-    color: #000000;
-    border-left: 3px solid #0078D4; /* 左侧选中标记 */
-    padding-left: 9px; /* 调整内边距以适应标记 */
+QListWidget::item:selected {
+    background-color: #E3F2FD;
+    color: #1565C0;
+    border-left: 4px solid #0078D4;
+    border-radius: 0px 8px 8px 0px;
+    padding-left: 11px;
 }
 
-QListWidget::item:hover:!selected, QTreeView::item:hover:!selected {
-    background-color: #EFF5FE;
+QTreeView::item:selected {
+    background-color: #E3F2FD;
+    color: #1565C0;
+    border-left: 4px solid #0078D4;
+    border-radius: 0px 8px 8px 0px;
+    padding-left: 11px;
 }
 
-/* TreeView 分支指示器 (展开/折叠箭头) */
-QTreeView::branch {
-    background: transparent;
+QListWidget::item:hover {
+    background-color: #F8FAFE;
+    border-radius: 8px;
+    margin: 2px;
+    padding: 10px 13px;
 }
 
-QTreeView::branch:has-children:!has-siblings:closed,
-QTreeView::branch:closed:has-children:has-siblings {
-    border-image: none;
-    image: url(:/icons/branch-closed.png);
+QTreeView::item:hover {
+    background-color: #F8FAFE;
+    border-radius: 8px;
+    margin: 2px;
+    padding: 8px 13px;
 }
 
-QTreeView::branch:open:has-children:!has-siblings,
-QTreeView::branch:open:has-children:has-siblings {
-    border-image: none;
-    image: url(:/icons/branch-open.png);
-}
-
-/* 聊天面板 */
+/* ==================== 聊天区域现代化 ==================== */
 QWidget#chatPanelWidgetContainer {
     background-color: #FFFFFF;
+    border-radius: 0px;
 }
 
 QWidget#chatTitleWidget {
-    border-bottom: 1px solid #EAEAEA;
-    background-color: #FFFFFF;
+    border-bottom: 1px solid #E8EAED;
+    background-color: #FAFBFC;
+    border-radius: 0px;
 }
 
 QLabel#chatTargetNameLabel {
-    font-size: 12pt;
-    font-weight: 500;
-    color: #333333;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A1A1A;
+    padding: 5px 0px;
 }
 
 QTextBrowser#messageDisplayBrowser {
     border: none;
-    background-color: transparent;
-    padding: 15px;
+    background-color: #FAFBFC;
+    padding: 20px;
     color: #333333;
+    selection-background-color: #DCEBFE;
 }
 
 QWidget#chatToolbarWidget {
-    border-top: 1px solid #EAEAEA;
-    background-color: #FFFFFF;
+    border-top: 1px solid #E8EAED;
+    background-color: #FAFBFC;
 }
 
-QToolButton { /* 工具栏按钮 */
+QToolButton {
     background-color: transparent;
     border: none;
-    padding: 3px;
-    border-radius: 3px;
+    padding: 6px;
+    border-radius: 6px;
+    margin: 2px;
 }
 
 QToolButton:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 120, 212, 0.1);
+    border: 1px solid rgba(0, 120, 212, 0.2);
 }
 
 QToolButton:pressed {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 120, 212, 0.15);
 }
 
 QTextEdit#messageInputEdit {
-    border: none;
-    background-color: transparent;
-    padding: 8px 12px;
-    font-size: 11pt;
+    border: 1px solid #E1E5E9;
+    background-color: #FFFFFF;
+    padding: 10px 15px;
+    font-size: 13px;
     color: #333333;
+    border-radius: 8px;
+    selection-background-color: #DCEBFE;
 }
 
+QTextEdit#messageInputEdit:focus {
+    border: 2px solid #0078D4;
+    background-color: #FAFEFF;
+    padding: 9px 14px;
+}
+
+/* ==================== 发送按钮现代化 ==================== */
 QPushButton#sendButton {
-    background-color: #F0F0F0;
-    color: #333333;
-    border: 1px solid #D0D0D0;
-    border-radius: 4px;
-    padding: 5px 15px;
-    font-size: 10pt;
+    background-color: #F8F9FA;
+    color: #495057;
+    border: 1px solid #CED4DA;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 60px;
 }
 
 QPushButton#sendButton:hover {
-    background-color: #E0E0E0;
-    border-color: #B0B0B0;
+    background-color: #E9ECEF;
+    border-color: #ADB5BD;
 }
 
 QPushButton#sendButton:pressed {
-    background-color: #D0D0D0;
+    background-color: #DEE2E6;
 }
 
 QPushButton#sendButton[inputNotEmpty="true"] {
     background-color: #0078D4;
     color: white;
     border: none;
+    font-weight: 600;
 }
 
-/* 添加联系人按钮 */
-QPushButton#addContactButton {
-    background-color: #0078D4;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 10pt;
-    margin: 8px;
-}
-
-QPushButton#addContactButton:hover {
+QPushButton#sendButton[inputNotEmpty="true"]:hover {
     background-color: #006CBF;
 }
 
-QPushButton#addContactButton:pressed {
+QPushButton#sendButton[inputNotEmpty="true"]:pressed {
     background-color: #005AA6;
 }
 
-/* ==================== 滚动条 ==================== */
+/* ==================== 联系人页面按钮现代化 ==================== */
+QPushButton#addContactButton,
+QPushButton#contactRequestsButton {
+    background-color: #0078D4;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 8px 5px;
+    min-height: 16px;
+}
+
+QPushButton#addContactButton:hover,
+QPushButton#contactRequestsButton:hover {
+    background-color: #006CBF;
+}
+
+QPushButton#addContactButton:pressed,
+QPushButton#contactRequestsButton:pressed {
+    background-color: #005AA6;
+}
+
+/* ==================== 滚动条现代化 ==================== */
 QScrollBar:vertical {
     border: none;
-    background: transparent;
-    width: 8px;
-    margin: 0px 0px 0px 0px;
+    background: rgba(0, 0, 0, 0.05);
+    width: 10px;
+    margin: 0px;
+    border-radius: 5px;
 }
 
 QScrollBar::handle:vertical {
-    background: #D0D0D0;
+    background-color: #C8CDD3;
     min-height: 30px;
-    border-radius: 4px;
+    border-radius: 5px;
+    margin: 2px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background: #B0B0B0;
+    background-color: #A8ADB3;
 }
 
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+QScrollBar::handle:vertical:pressed {
+    background-color: #888D93;
+}
+
+QScrollBar::add-line:vertical, 
+QScrollBar::sub-line:vertical {
     height: 0px;
-}
-
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-    background: none;
+    width: 0px;
 }
 
 QScrollBar:horizontal {
     border: none;
+    background: rgba(0, 0, 0, 0.05);
+    height: 10px;
+    margin: 0px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #C8CDD3;
+    min-width: 30px;
+    border-radius: 5px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #A8ADB3;
+}
+
+QScrollBar::add-line:horizontal, 
+QScrollBar::sub-line:horizontal {
+    height: 0px;
+    width: 0px;
+}
+
+/* ==================== TreeView 现代化 ==================== */
+QTreeView::branch {
     background: transparent;
-    height: 8px;
-    margin: 0px 0px 0px 0px;
+    width: 20px;
+}
+
+QTreeView::branch:has-children {
+    border-image: none;
+    image: none;
+    background: transparent;
+}
+
+/* ==================== 对话框和弹窗样式 ==================== */
+QDialog {
+    background-color: #FFFFFF;
+    border: 1px solid #E8EAED;
+    border-radius: 10px;
+}
+
+QMessageBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E8EAED;
+    border-radius: 8px;
+}
+
+/* ==================== 工具提示现代化 ==================== */
+QToolTip {
+    background-color: #2C3E50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
 }

@@ -4,11 +4,12 @@
 #include "Logger.h"
 #include "error_codes.h"
 #include "StatusGrpcClient.h"
-#include "InterChatClient.h"
+#include "ConfigMgr.h"
 using json = nlohmann::json;
 
-MessageHandler::MessageHandler(ConnectionManager &conn_manager, const std::string &jwt_secret_key)
+MessageHandler::MessageHandler(ConnectionManager &conn_manager, const std::string &jwt_secret_key, const std::string &server_id)
     : conn_manager_(conn_manager),
+      server_id_(server_id),
       verifier_(jwt::verify()
           .allow_algorithm(jwt::algorithm::hs256{jwt_secret_key})
           .with_issuer("UserService")),
@@ -76,7 +77,7 @@ void MessageHandler::processMessage(const MessageTask &task) {
             return;
         }
 
-        auto data = j["data"];
+        const auto data = j["data"];
 
         const std::string type = j["type"];
 
@@ -124,10 +125,15 @@ bool MessageHandler::handleAuthMessage(const TcpConnectionPtr &conn, const uint1
         // 将用户连接添加到连接管理器
         conn_manager_.addUserConnection(uid, conn);
 
-        // 更新用户上线状态
-        auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(uid, true);
+        // 更新用户上线状态，注册用户到当前服务器
+        auto &config = ConfigMgr::getInstance();
+        std::string server_id = config["ChatServer"].get("server_id", "");
+        
+        auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(uid, server_id, true);
         if (reply.code() != UserOnlineStatusUpdateResponse_Code_OK) {
-            LOG_ERROR("更新用户上线状态失败: {}", reply.error_msg());
+            LOG_ERROR("更新用户 {} 上线状态失败: {}", uid, reply.error_msg());
+        } else {
+            LOG_INFO("用户 {} 已注册到服务器 {}", uid, server_id);
         }
 
         // 发送认证成功消息
@@ -165,15 +171,15 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
         sendJsonResponse(conn, req_id, MessageType::ErrorResp, ErrorCodes::kErrCommonInvalidField, "无效消息内容");
         return;
     }
-
-    if (!data.contains("to_uid") || !data["to_uid"].is_number_unsigned()) {
+    LOG_INFO("to_uid: {}", data["to_uid"].get<std::string>());
+    if (!data.contains("to_uid") || !data["to_uid"].is_string()) {
         sendJsonResponse(conn, req_id, MessageType::ErrorResp, ErrorCodes::kErrCommonInvalidField, "无效消息目标用户ID");
         return;
     }
 
     const std::string msg_type = data["msg_type"];
     const std::string content = data["content"];
-    const uint64_t to_uid = data["to_uid"];
+    const uint64_t to_uid = std::stoull(data["to_uid"].get<std::string>());
     const uint64_t from_uid = conn->uid();
 
     if (to_uid == from_uid) {
@@ -190,21 +196,25 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
             auto reply = StatusGrpcClient::getInstance().GetUidChatServer(to_uid);
             
             if (reply.code() == GetUidChatServerResponse_Code_OK) {
-                // 用户在其他服务器上在线，将消息转发到对应服务器
-                LOG_INFO("用户 {} 在其他聊天服务器上在线: {}:{}", 
-                         to_uid, reply.host(), reply.port());
+                // 用户在其他服务器上在线，通过MQ转发消息
+                LOG_INFO("用户 {} 在其他聊天服务器上在线，队列: {}", 
+                         to_uid, reply.message_queue_name());
                 
-                // 生成消息ID
-                std::string message_id = std::to_string(req_id) + "_" + std::to_string(from_uid) + "_" + std::to_string(to_uid);
+                // 构造消息payload
+                json message_payload;
+                message_payload["from_uid"] = from_uid;
+                message_payload["to_uid"] = to_uid;
+                message_payload["content"] = content;
+                message_payload["msg_type"] = msg_type;
+                message_payload["timestamp"] = std::time(nullptr);
                 
-                // 使用InterChatClient转发消息
-                bool forwarded = InterChatClient::getInstance().ForwardMessage(
-                    reply.host(),
-                    reply.port(),
-                    message_id,
-                    std::to_string(from_uid),
-                    std::to_string(to_uid),
-                    content
+                // 使用MQGateway转发消息
+                bool forwarded = MQGatewayClient::getInstance().publishMessage(
+                    reply.message_queue_name(),  // 目标ChatServer的消息队列
+                    "chat_message",
+                    to_uid,
+                    from_uid,
+                    message_payload.dump()
                 );
                 
                 if (forwarded) {
@@ -212,7 +222,7 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
                     sendJsonResponse(conn, req_id, MessageType::SendMsgResp, ErrorCodes::kSuccess, "消息已接收，正在转发");
                 } else {
                     // 转发失败
-                    LOG_ERROR("转发消息到服务器 {}:{} 失败", reply.host(), reply.port());
+                    LOG_ERROR("通过MQ转发消息失败，目标队列: {}", reply.message_queue_name());
                     sendJsonResponse(conn, req_id, MessageType::ErrorResp, ErrorCodes::kErrChatSendFailed, "消息转发失败");
                 }
                 return;
@@ -221,7 +231,7 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
                 LOG_INFO("用户 {} 当前离线，存储离线消息", to_uid);
                 
                 // TODO: 实现离线消息存储
-                // 此处可以通过数据库或消息队列存储离线消息
+                // 通过 UserServer 搭配 MQ 实现
                 
                 sendJsonResponse(conn, req_id, MessageType::SendMsgResp, ErrorCodes::kSuccess, "用户离线，消息已存储");
                 return;
@@ -264,7 +274,7 @@ void MessageHandler::handleChatMessage(const TcpConnectionPtr &conn, const uint1
         
         // 更新用户状态
         try {
-            auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(to_uid, true);
+            auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(to_uid, server_id_, true);
             if (reply.code() != UserOnlineStatusUpdateResponse_Code_OK) {
                 LOG_WARN("更新用户 {} 状态失败: {}", to_uid, reply.error_msg());
             }

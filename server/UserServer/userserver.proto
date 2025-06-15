@@ -52,8 +52,9 @@ message CreateUserRequest {
 
 message CreateUserResponse {
     bool success = 1;
-    string error_msg = 2;
-    uint64 uid = 3;
+    uint32 code = 2;
+    string error_msg = 3;
+    uint64 uid = 4;
 }
 
 message GetUserProfileRequest {
@@ -83,18 +84,6 @@ message ResetPasswordRequest {
 }
 
 message ResetPasswordResponse {
-    bool success = 1;
-    string error_msg = 2;
-}
-
-// 添加好友请求
-message AddContactRequest {
-    uint64 user_id = 1;       // 发起请求的用户ID
-    uint64 friend_id = 2;     // 要添加的好友ID
-}
-
-// 添加好友响应
-message AddContactResponse {
     bool success = 1;
     string error_msg = 2;
 }
@@ -133,6 +122,63 @@ message SearchUserResponse {
     repeated UserProfile users = 3;   // 用户列表
 }
 
+// 联系人请求状态
+enum ContactRequestStatus {
+    PENDING = 0;
+    ACCEPTED = 1;
+    REJECTED = 2;
+}
+
+// 发送联系人请求
+message SendContactRequestArgs {
+    uint64 requester_id = 1;      // 请求发起者ID
+    uint64 addressee_id = 2;      // 请求接收者ID
+    string request_message = 3;   // 验证信息
+}
+
+message SendContactRequestReply {
+    bool success = 1;
+    string error_msg = 2;
+    uint64 request_id = 3;        // 请求ID
+}
+
+// 处理联系人请求
+message HandleContactRequestArgs {
+    uint64 request_id = 1;        // 请求ID
+    uint64 user_id = 2;           // 处理请求的用户ID
+    ContactRequestStatus action = 3;  // 接受或拒绝
+}
+
+message HandleContactRequestReply {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+// 获取联系人请求列表
+message GetContactRequestsArgs {
+    uint64 user_id = 1;           // 用户ID
+    ContactRequestStatus status = 2;  // 请求状态
+}
+
+message ContactRequestInfo {
+    uint64 request_id = 1;
+    uint64 requester_id = 2;
+    uint64 addressee_id = 10;      // 添加接收者ID
+    string requester_name = 3;
+    string requester_nickname = 4;
+    string requester_avatar = 5;
+    string request_message = 6;
+    ContactRequestStatus status = 7;
+    string created_at = 8;
+    string updated_at = 9;
+}
+
+message GetContactRequestsReply {
+    bool success = 1;
+    string error_msg = 2;
+    repeated ContactRequestInfo requests = 3;
+}
+
 // 用户服务
 service UserService {
     // 验证用户凭证
@@ -150,12 +196,18 @@ service UserService {
     // 重置密码
     rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {}
     
-    // 添加联系人
-    rpc AddContact(AddContactRequest) returns (AddContactResponse) {}
-    
     // 获取联系人列表
     rpc GetContacts(GetContactsRequest) returns (GetContactsResponse) {}
     
     // 搜索用户
     rpc SearchUser(SearchUserRequest) returns (SearchUserResponse) {}
+    
+    // 发送联系人请求
+    rpc SendContactRequest(SendContactRequestArgs) returns (SendContactRequestReply) {}
+    
+    // 处理联系人请求
+    rpc HandleContactRequest(HandleContactRequestArgs) returns (HandleContactRequestReply) {}
+    
+    // 获取联系人请求列表
+    rpc GetContactRequests(GetContactRequestsArgs) returns (GetContactRequestsReply) {}
 }

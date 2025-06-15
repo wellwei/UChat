@@ -281,7 +281,12 @@ void ChatConnection::processMessage(quint16 msgId, const QByteArray &data) {
         
         // 可以添加专门的心跳响应信号
         emit heartbeatResponseReceived();
-    } else {
+    } else if (type == "error_resp") {
+        int code = message.value("code").toInt();
+        QString msg = message.value("message").toString();
+        emit error(msg);
+    }
+    else {
         qWarning() << "未知消息类型" << type;
     }
 }

@@ -80,9 +80,12 @@ grpc::Status StatusServer::RegisterChatServer(grpc::ServerContext* context, cons
     auto server_id = request->server_id();
     auto host = request->host();
     auto port = request->port();
+    auto message_queue_name = request->message_queue_name();
+    auto notification_queue_name = request->notification_queue_name();
 
-    if (server_id.empty() || host.empty() || port.empty()) {
-        LOG_WARN("RegisterChatServer 收到无效请求: server_id: {}, host: {}, port: {}", server_id, host, port);
+    if (server_id.empty() || host.empty() || port.empty() || message_queue_name.empty() || notification_queue_name.empty()) {
+        LOG_WARN("RegisterChatServer 收到无效请求: server_id: {}, host: {}, port: {}, msg_queue: {}, notify_queue: {}", 
+                server_id, host, port, message_queue_name, notification_queue_name);
         response->set_code(RegisterChatServerResponse::Code::RegisterChatServerResponse_Code_INVALID_REQUEST);
         response->set_error_msg("无效的请求");
         return grpc::Status::OK;
@@ -91,14 +94,20 @@ grpc::Status StatusServer::RegisterChatServer(grpc::ServerContext* context, cons
     if (chat_servers_.find(server_id) != chat_servers_.end()) {
         LOG_WARN("ChatServer {} 已存在, 将更新其信息", server_id);
         chat_servers_.erase(server_id);
-        chat_servers_[server_id] = {server_id, host, port, 0, std::chrono::steady_clock::now()};
-        response->set_code(RegisterChatServerResponse::Code::RegisterChatServerResponse_Code_ALREADY_REGISTERED);
-        return grpc::Status::OK;
     }
 
-    chat_servers_[server_id] = {server_id, host, port, 0, std::chrono::steady_clock::now()};
+    chat_servers_[server_id] = {
+        server_id, 
+        host, 
+        port, 
+        0, 
+        std::chrono::steady_clock::now(),
+        message_queue_name,
+        notification_queue_name
+    };
 
-    LOG_INFO("来自 {} 的 ChatServer {} 注册成功", host + ":" + port, server_id);
+    LOG_INFO("来自 {} 的 ChatServer {} 注册成功，消息队列: {}, 通知队列: {}", 
+             host + ":" + port, server_id, message_queue_name, notification_queue_name);
     response->set_code(RegisterChatServerResponse::Code::RegisterChatServerResponse_Code_OK);
     return grpc::Status::OK;
 }
@@ -178,5 +187,7 @@ grpc::Status StatusServer::GetUidChatServer(grpc::ServerContext* context, const 
     response->set_code(GetUidChatServerResponse::Code::GetUidChatServerResponse_Code_OK);
     response->set_host(it->second.host);
     response->set_port(it->second.port);
+    response->set_message_queue_name(it->second.message_queue_name);
+    response->set_notification_queue_name(it->second.notification_queue_name);
     return grpc::Status::OK;
 }

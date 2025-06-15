@@ -61,9 +61,9 @@ void HttpMgr::PostHttpReq(const QUrl &url, const QJsonObject &jsonObj, ReqId req
     });
 }
 
-void HttpMgr::login(const QString &username, const QString &password) {
+void HttpMgr::login(const QString &handle, const QString &password) {
     QJsonObject jsonObj;
-    jsonObj["username"] = username;
+    jsonObj["handle"] = handle;
     jsonObj["password"] = password;
 
     QUrl url(GATE_SERVER_URL + "/login");
@@ -126,16 +126,6 @@ void HttpMgr::getUserProfile(const uint64_t &uid, const QString &token) {
     PostHttpReq(url, jsonObj, ReqId::ID_GET_USER_PROFILE, Modules::CHATMOD);
 }
 
-void HttpMgr::addContact(const uint64_t &uid, const QString &token, const uint64_t &friendId) {
-    QJsonObject jsonObj;
-    jsonObj["token"] = token;
-    jsonObj["uid"] = QString::number(uid);
-    jsonObj["friend_id"] = QString::number(friendId);
-
-    QUrl url(GATE_SERVER_URL + "/add_contact");
-    PostHttpReq(url, jsonObj, ReqId::ID_ADD_CONTACT, Modules::CHATMOD);
-}
-
 void HttpMgr::getContacts(const uint64_t &uid, const QString &token) {
     QJsonObject jsonObj;
     jsonObj["token"] = token;
@@ -153,6 +143,38 @@ void HttpMgr::searchUser(const uint64_t &uid, const QString &token, const QStrin
 
     QUrl url(GATE_SERVER_URL + "/search_user");
     PostHttpReq(url, jsonObj, ReqId::ID_SEARCH_USER, Modules::CHATMOD);
+}
+
+void HttpMgr::sendContactRequest(const uint64_t &uid, const QString &token, const uint64_t &addresseeId, const QString &message) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+    jsonObj["addressee_id"] = QString::number(addresseeId);
+    jsonObj["message"] = message;
+
+    QUrl url(GATE_SERVER_URL + "/send_contact_request");
+    PostHttpReq(url, jsonObj, ReqId::ID_SEND_CONTACT_REQUEST, Modules::CHATMOD);
+}
+
+void HttpMgr::handleContactRequest(const uint64_t &uid, const QString &token, const uint64_t &requestId, ContactRequestStatus action) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+    jsonObj["request_id"] = QString::number(requestId);
+    jsonObj["action"] = static_cast<int>(action);
+
+    QUrl url(GATE_SERVER_URL + "/handle_contact_request");
+    PostHttpReq(url, jsonObj, ReqId::ID_HANDLE_CONTACT_REQUEST, Modules::CHATMOD);
+}
+
+void HttpMgr::getContactRequests(const uint64_t &uid, const QString &token, ContactRequestStatus status) {
+    QJsonObject jsonObj;
+    jsonObj["token"] = token;
+    jsonObj["uid"] = QString::number(uid);
+    jsonObj["status"] = static_cast<int>(status);
+
+    QUrl url(GATE_SERVER_URL + "/get_contact_requests");
+    PostHttpReq(url, jsonObj, ReqId::ID_GET_CONTACT_REQUESTS, Modules::CHATMOD);
 }
 
 void HttpMgr::slot_http_finish(ReqId id, const QString &res, ErrorCodes err, Modules module) {

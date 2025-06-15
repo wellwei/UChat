@@ -13,9 +13,14 @@ LogicSystem::LogicSystem() {
     registerHandler(RequestType::POST, "/get_verifycode", RequestHandlerFuncs::handle_post_getverifycode);
     registerHandler(RequestType::POST, "/register", RequestHandlerFuncs::handle_post_register);
     registerHandler(RequestType::POST, "/login", RequestHandlerFuncs::handle_post_login);
-    registerHandler(RequestType::POST, "/reset_password", RequestHandlerFuncs::handle_put_resetPassword);
+    registerHandler(RequestType::POST, "/reset_password", RequestHandlerFuncs::handle_post_resetPassword);
     registerHandler(RequestType::POST, "/get_chat_server", RequestHandlerFuncs::handle_post_getChatServer);
     registerHandler(RequestType::POST, "/get_user_profile", RequestHandlerFuncs::handle_post_getUserProfile);
+    registerHandler(RequestType::POST, "/get_contacts", RequestHandlerFuncs::handle_post_getContacts);
+    registerHandler(RequestType::POST, "/search_user", RequestHandlerFuncs::handle_post_searchUser);
+    registerHandler(RequestType::POST, "/send_contact_request", RequestHandlerFuncs::handle_post_sendContactRequest);
+    registerHandler(RequestType::POST, "/handle_contact_request", RequestHandlerFuncs::handle_post_handleContactRequest);
+    registerHandler(RequestType::POST, "/get_contact_requests", RequestHandlerFuncs::handle_post_getContactRequests);
 }
 
 void

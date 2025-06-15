@@ -49,7 +49,7 @@ target_link_libraries(proto_lib PUBLIC
         gRPC::grpc++_reflection
 )
 target_include_directories(proto_lib PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${GENERATED_DIR}>
 )
 
 add_executable(StatusServer 

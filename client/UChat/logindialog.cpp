@@ -56,7 +56,7 @@ void LoginDialog::showEvent(QShowEvent *event) {
     // 根据当前页面设置焦点
     int index = ui->stackedWidget->currentIndex();
     if (index == 0) { // Login Page
-        ui->username_edit->setFocus();
+        ui->handle_edit->setFocus();
     } else if (index == 1) { // Register Page
         ui->reg_username_edit->setFocus();
     } else if (index == 2) { // Reset Page
@@ -69,13 +69,13 @@ void LoginDialog::showEvent(QShowEvent *event) {
 // 登录页面 - 登录按钮点击
 void LoginDialog::on_login_btn_clicked() {
     qDebug() << "Login button clicked";
-    QString username = ui->username_edit->text().trimmed();
+    QString handle = ui->handle_edit->text().trimmed();
     QString password = ui->password_edit->text();
 
     // 输入验证
-    if (username.isEmpty()) {
-        showTip(ui->login_err_tip_label, tr("请输入用户名"));
-        ui->username_edit->setFocus();
+    if (handle.isEmpty()) {
+        showTip(ui->login_err_tip_label, tr("请输入用户名/邮箱"));
+        ui->handle_edit->setFocus();
         return;
     }
 
@@ -90,7 +90,7 @@ void LoginDialog::on_login_btn_clicked() {
     setEnabled(false);
 
     // 调用登录接口
-    HttpMgr::getInstance()->login(username, password);
+    HttpMgr::getInstance()->login(handle, password);
 }
 
 // 忘记密码按钮点击
@@ -287,12 +287,12 @@ void LoginDialog::showTip(QLabel *label, const QString &tip, bool err) {
 // 切换到登录页面
 void LoginDialog::switchToLoginPage() {
     // 清空输入框
-    ui->username_edit->clear();
+    ui->handle_edit->clear();
     ui->password_edit->clear();
     ui->login_err_tip_label->clear();
     // 切换到登录页面
     ui->stackedWidget->setCurrentIndex(0);
-    ui->username_edit->setFocus();
+    ui->handle_edit->setFocus();
 }
 
 // 切换到注册页面

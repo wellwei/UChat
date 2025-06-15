@@ -4,7 +4,6 @@
 #include "ServicePool.h"
 #include "ConfigMgr.h"
 #include "Logger.h"
-#include "MysqlMgr.h"
 #include "RedisMgr.h"
 #include "LogicSystem.h"
 
@@ -16,7 +15,6 @@ int main() {
         Singleton<ConfigMgr>::getInstance();
         Singleton<ServicePool>::getInstance();
         Singleton<LogicSystem>::getInstance();
-        Singleton<MysqlMgr>::getInstance();
         Singleton<RedisMgr>::getInstance();
     }
     catch (...) {

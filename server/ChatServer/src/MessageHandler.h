@@ -2,6 +2,7 @@
 
 #include "TcpConnection.h"
 #include "ConnectionManager.h"
+#include "MQGatewayClient.h"
 #include <jwt-cpp/jwt.h>
 #include <string>
 #include <nlohmann/json.hpp>
@@ -16,7 +17,7 @@ public:
         Message msg;
     };
 
-    MessageHandler(ConnectionManager& conn_manager, const std::string& jwt_secret_key);
+    MessageHandler(ConnectionManager& conn_manager, const std::string& jwt_secret_key, const std::string& server_id);
     ~MessageHandler();
 
     void handleMessage(const TcpConnectionPtr& conn, const Message& msg);
@@ -46,6 +47,7 @@ private:
     ConnectionManager& conn_manager_;
     jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson> verifier_;
     std::string jwt_secret_key_;
+    std::string server_id_;
 
     std::thread worker_thread_;
     std::mutex queue_mutex_;
@@ -55,13 +57,13 @@ private:
 }; 
 
 namespace MessageType {
-    static const std::string AuthReq = "auth_req";
-    static const std::string AuthResp = "auth_resp";
-    static const std::string HeartbeatReq = "heartbeat_req";
-    static const std::string HeartbeatResp = "heartbeat_resp";
-    static const std::string SendMsgReq = "send_msg_req";
-    static const std::string SendMsgResp = "send_msg_resp";
-    static const std::string RecvMsg = "recv_msg";
-    static const std::string ErrorResp = "error_resp";
+    static const std::string AuthReq = "auth_req";              // 认证请求
+    static const std::string AuthResp = "auth_resp";            // 认证响应
+    static const std::string HeartbeatReq = "heartbeat_req";    // 心跳请求
+    static const std::string HeartbeatResp = "heartbeat_resp";  // 心跳响应
+    static const std::string SendMsgReq = "send_msg_req";       // 客户端发送消息请求
+    static const std::string SendMsgResp = "send_msg_resp";     // 客户端发送消息响应
+    static const std::string RecvMsg = "recv_msg";              // 接收到并转发给目标客户端的消息
+    static const std::string ErrorResp = "error_resp";          // 错误响应
 };
 

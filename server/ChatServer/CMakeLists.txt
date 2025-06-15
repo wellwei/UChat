@@ -70,12 +70,10 @@ add_executable(ChatServer
         src/ConnectionManager.cpp
         src/MessageHandler.h
         src/MessageHandler.cpp
+        src/MQGatewayClient.h
+        src/MQGatewayClient.cpp
         src/ChatServer.h
         src/ChatServer.cpp
-        src/InterChatService.h
-        src/InterChatService.cpp
-        src/InterChatClient.h
-        src/InterChatClient.cpp
         main.cpp
 )
 

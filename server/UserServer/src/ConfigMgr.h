@@ -33,6 +33,14 @@ struct SectionInfo {
         }
         return it->second;
     }
+
+    const std::string& get(const std::string& key, const std::string& default_value = "") const {
+        auto it = section_datas.find(key);
+        if (it == section_datas.end()) {
+            return default_value;
+        }
+        return it->second;
+    }
 };
 
 class ConfigMgr : public Singleton<ConfigMgr> {

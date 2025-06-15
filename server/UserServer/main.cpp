@@ -32,6 +32,7 @@ int main() {
 
     UserServer user_server;
     g_server = &user_server;
+
     user_server.start();
 
     std::signal(SIGINT, signalHandler);

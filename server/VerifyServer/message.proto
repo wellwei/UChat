@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-package message;
-
 message VerifyRequest {
   string email = 1;
 }

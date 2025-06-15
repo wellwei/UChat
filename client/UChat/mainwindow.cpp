@@ -1,9 +1,7 @@
 #include <QFile>
-#include <QDateTime>
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <QIcon>
-#include <QInputDialog>
 #include <QFileDialog>
 #include <QDebug>
 #include <QPixmap>
@@ -12,25 +10,23 @@
 #include <QScrollBar>
 #include <QRandomGenerator>
 #include <QKeyEvent>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QStandardItemModel>
-#include <QListWidgetItem>
 
 #include "mainwindow.hpp"
 #include "./ui_mainwindow.h"
 #include "logindialog.hpp"
-#include "HttpMgr.h"
 #include "ChatManager.h"
 #include "ContactManager.h"
 #include "ChatUIManager.h"
+#include "AddContactDialog.h"
+#include "MessageDelegate.h"
+#include "ChatMessageModel.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , m_isConnected(false)
     , m_contactsModel(nullptr)
+    , m_addContactDialog(nullptr)
     , m_trayIcon(nullptr)
 {
     ui->setupUi(this);
@@ -58,8 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->messageInputEdit->installEventFilter(this);
     
     // 初始化聊天UI管理器
-    auto chatUIManager = ChatUIManager::getInstance();
-    chatUIManager->initUI(ui->conversationsListWidget, ui->messageDisplayBrowser, ui->chatTargetNameLabel);
+    const auto chatUIManager = ChatUIManager::getInstance();
+    chatUIManager->initUI(ui->conversationsListWidget, ui->messageListView, ui->chatTargetNameLabel);
 }
 
 MainWindow::~MainWindow()
@@ -70,30 +66,97 @@ MainWindow::~MainWindow()
 void MainWindow::initUI()
 {
     // 设置窗口标题和图标
-    setWindowTitle("UChat");
+    setWindowTitle("UChat - 现代化即时通讯");
     setWindowIcon(QIcon(":/resource/image/uchat.ico"));
     
-    // 设置侧边栏图标
-    ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message.svg"));
+    // 设置侧边栏图标，使用更现代的图标
+    ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message-pressed.svg"));
     ui->contactsNavButton->setIcon(QIcon(":/resource/image/contacter.svg"));
+    ui->groupsNavButton->setIcon(QIcon(":/resource/image/group.svg"));
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting.svg"));
     
     // 确保分割器的初始位置合理
-    ui->chatSplitter->setSizes(QList<int>() << 250 << 550);
+    ui->chatSplitter->setSizes(QList<int>() << 280 << 520);
     
     // 创建联系人模型
     m_contactsModel = new QStandardItemModel(this);
     m_contactsModel->setHorizontalHeaderLabels(QStringList() << "联系人");
     ui->contactsTreeView->setModel(m_contactsModel);
     
-    // 初始化消息显示区域
-    ui->messageDisplayBrowser->clear();
-    ui->messageDisplayBrowser->setOpenLinks(true);
-    ui->messageDisplayBrowser->setOpenExternalLinks(true);
+    // 优化联系人树视图设置
+    ui->contactsTreeView->setAnimated(true);
+    ui->contactsTreeView->setIndentation(20);
+    ui->contactsTreeView->setRootIsDecorated(false);
+    ui->contactsTreeView->setHeaderHidden(true);
+    ui->contactsTreeView->setUniformRowHeights(true);
+    
+    // 初始化消息显示区域，现在是 ListView
+    ui->messageListView->setSpacing(5); // 为项目之间添加一些间距
+    ui->messageListView->setStyleSheet("background-color: #E0E1E2;"); // 设置背景色
+    
+    // 优化搜索框设置
+    setupSearchBoxes();
+    
+    // 优化会话列表设置
+    setupConversationList();
     
     // 设置输入区域初始状态
     ui->messageInputEdit->clear();
     ui->messageInputEdit->setFocus();
+    ui->messageInputEdit->setPlaceholderText("输入消息... (Ctrl+Enter 发送)");
+    
+    // 设置发送按钮初始状态
+    updateSendButtonState();
+    
+    // 设置窗口最小尺寸
+    setMinimumSize(900, 650);
+    
+    // 优化滚动区域
+    ui->messageListView->verticalScrollBar()->setStyleSheet("QScrollBar { width: 8px; }");
+}
+
+// 优化搜索框设置
+void MainWindow::setupSearchBoxes()
+{
+    // 设置搜索框的动画效果和交互
+    ui->searchConversationsLineEdit->setClearButtonEnabled(true);
+    ui->searchContactsLineEdit->setClearButtonEnabled(true);
+    ui->searchGroupsLineEdit->setClearButtonEnabled(true);
+    
+    // 改进搜索框的提示文本
+    ui->searchConversationsLineEdit->setPlaceholderText("搜索会话...");
+    ui->searchContactsLineEdit->setPlaceholderText("搜索联系人...");
+    ui->searchGroupsLineEdit->setPlaceholderText("搜索群组...");
+    
+    // 设置搜索框的快捷键
+    ui->searchConversationsLineEdit->addAction(QIcon(":/resource/image/search.svg"), QLineEdit::LeadingPosition);
+    ui->searchContactsLineEdit->addAction(QIcon(":/resource/image/search.svg"), QLineEdit::LeadingPosition);
+    ui->searchGroupsLineEdit->addAction(QIcon(":/resource/image/search.svg"), QLineEdit::LeadingPosition);
+}
+
+// 优化会话列表设置
+void MainWindow::setupConversationList()
+{
+    // 设置会话列表的现代化属性
+    ui->conversationsListWidget->setSpacing(1);
+    ui->conversationsListWidget->setUniformItemSizes(false);
+    ui->conversationsListWidget->setResizeMode(QListView::Adjust);
+    ui->conversationsListWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    ui->conversationsListWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    
+    // 设置拖拽支持（未来可能用于排序）
+    ui->conversationsListWidget->setDragDropMode(QAbstractItemView::NoDragDrop);
+    ui->conversationsListWidget->setDefaultDropAction(Qt::MoveAction);
+}
+
+// 更新发送按钮状态
+void MainWindow::updateSendButtonState()
+{
+    bool hasText = !ui->messageInputEdit->toPlainText().trimmed().isEmpty();
+    ui->sendButton->setProperty("inputNotEmpty", hasText);
+    ui->sendButton->style()->unpolish(ui->sendButton);
+    ui->sendButton->style()->polish(ui->sendButton);
+    ui->sendButton->update();
 }
 
 // 初始化系统托盘图标
@@ -152,16 +215,19 @@ void MainWindow::setupSignalsAndSlots()
         // 处理会话选择事件
     });
     
+    // 连接未读消息相关信号
+    connect(chatUIManager.get(), &ChatUIManager::unreadCountChanged, this, 
+            &MainWindow::onUnreadCountChanged);
+    connect(chatUIManager.get(), &ChatUIManager::totalUnreadCountChanged, this, 
+            &MainWindow::onTotalUnreadCountChanged);
+    connect(chatUIManager.get(), &ChatUIManager::newMessageReceived, this, 
+            &MainWindow::onNewMessageReceived);
+    
     // 连接ContactManager信号
     auto contactManager = ContactManager::getInstance();
     connect(contactManager.get(), &ContactManager::contactsUpdated, [this]() {
         // 更新联系人树视图
         updateContactsView();
-    });
-    
-    connect(contactManager.get(), &ContactManager::userSearchCompleted, [this](const QJsonArray &users) {
-        // 显示搜索用户结果
-        displaySearchUserResults(users);
     });
 }
 
@@ -278,6 +344,7 @@ void MainWindow::onLoginSuccess(const ClientInfo &clientInfo)
         // 实际连接状态会通过connected信号通知
         updateConnectionStatus(false, "正在连接...");
     }
+    ui->contactsTreeView->expandAll();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -315,6 +382,7 @@ void MainWindow::onChatNavButtonClicked()
     // 更新按钮图标
     ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message-pressed.svg"));
     ui->contactsNavButton->setIcon(QIcon(":/resource/image/contacter.svg"));
+    ui->groupsNavButton->setIcon(QIcon(":/resource/image/group.svg"));
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting.svg"));
 }
 
@@ -325,7 +393,14 @@ void MainWindow::onContactsNavButtonClicked()
     // 更新按钮图标
     ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message.svg"));
     ui->contactsNavButton->setIcon(QIcon(":/resource/image/contacter-pressed.svg"));
+    ui->groupsNavButton->setIcon(QIcon(":/resource/image/group.svg"));
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting.svg"));
+    
+    // 刷新联系人列表以确保显示最新的联系人（包括新添加的）
+    if (m_isConnected && m_clientInfo.uid != 0) {
+        auto contactManager = ContactManager::getInstance();
+        contactManager->getContacts(m_clientInfo.uid, m_clientInfo.token);
+    }
 }
 
 void MainWindow::onGroupsNavButtonClicked()
@@ -335,6 +410,7 @@ void MainWindow::onGroupsNavButtonClicked()
     // 更新按钮图标
     ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message.svg"));
     ui->contactsNavButton->setIcon(QIcon(":/resource/image/contacter.svg"));
+    ui->groupsNavButton->setIcon(QIcon(":/resource/image/group-pressed.svg"));
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting.svg"));
 }
 
@@ -345,6 +421,7 @@ void MainWindow::onSettingsNavButtonClicked()
     // 更新按钮图标
     ui->chatNavButton->setIcon(QIcon(":/resource/image/chat-message.svg"));
     ui->contactsNavButton->setIcon(QIcon(":/resource/image/contacter.svg"));
+    ui->groupsNavButton->setIcon(QIcon(":/resource/image/group.svg"));
     ui->settingsNavButton->setIcon(QIcon(":/resource/image/setting-pressed.svg"));
 }
 
@@ -370,8 +447,10 @@ void MainWindow::onSendButtonClicked()
     chatMessage.type = "text";
     chatMessage.timestamp = QDateTime::currentSecsSinceEpoch();
     chatMessage.isOutgoing = true;
+    // userProfile 中没有头像信息，暂时使用默认头像
+    chatMessage.avatarPath = ":/resource/image/default-avatar.svg"; // 我方头像
     
-    // 添加消息到UI
+    // 直接通过 ChatUIManager 添加消息
     chatUIManager->addMessage(currentChatUid, chatMessage);
     
     // 发送到服务器
@@ -390,12 +469,8 @@ void MainWindow::onMessageInputTextChanged()
     QString text = ui->messageInputEdit->toPlainText();
     ui->sendButton->setEnabled(!text.trimmed().isEmpty());
     
-    // 根据是否有内容改变发送按钮的样式
-    if (!text.trimmed().isEmpty()) {
-        ui->sendButton->setStyleSheet("background-color: #0078D4; color: white; border: none;");
-    } else {
-        ui->sendButton->setStyleSheet("");
-    }
+    // 使用新的状态更新方法
+    updateSendButtonState();
 }
 
 void MainWindow::onEmojiButtonClicked()
@@ -461,17 +536,25 @@ void MainWindow::onContactSelected(const QModelIndex &index)
 
 void MainWindow::onAddContactClicked()
 {
-    // 弹出添加联系人对话框
-    bool ok;
-    QString searchText = QInputDialog::getText(this, "搜索用户", 
-                                         "请输入用户ID、用户名或邮箱:", 
-                                         QLineEdit::Normal, 
-                                         "", &ok);
-    if (ok && !searchText.isEmpty()) {
-        // 向服务器发送搜索请求
-        auto contactManager = ContactManager::getInstance();
-        contactManager->searchUser(m_clientInfo.uid, m_clientInfo.token, searchText);
+    // 创建或显示添加联系人对话框
+    if (!m_addContactDialog) {
+        m_addContactDialog = new AddContactDialog(this);
+        m_addContactDialog->setCurrentUser(m_clientInfo.uid, m_clientInfo.token);
+        
+        // 连接信号：当成功接受联系人请求时自动刷新主窗口的联系人列表
+        connect(m_addContactDialog, &AddContactDialog::contactRequestAccepted, [this]() {
+            if (m_isConnected && m_clientInfo.uid != 0) {
+                auto contactManager = ContactManager::getInstance();
+                contactManager->getContacts(m_clientInfo.uid, m_clientInfo.token);
+            }
+        });
     }
+    
+    // 刷新数据并显示对话框
+    m_addContactDialog->refreshData();
+    m_addContactDialog->show();
+    m_addContactDialog->raise();
+    m_addContactDialog->activateWindow();
 }
 
 void MainWindow::onContactContextMenu(const QPoint &pos)
@@ -580,6 +663,10 @@ void MainWindow::onTrayActionTriggered()
 // 网络事件处理
 void MainWindow::onMessageReceived(uint64_t fromUid, const QString &content, const QString &msgType, qint64 timestamp)
 {
+    auto contactManager = ContactManager::getInstance();
+    Contact contact;
+    contactManager->getContactInfo(fromUid, contact); // 获取联系人信息以获得头像路径
+
     // 创建新消息
     ChatMessage chatMessage;
     chatMessage.senderId = fromUid;
@@ -588,16 +675,15 @@ void MainWindow::onMessageReceived(uint64_t fromUid, const QString &content, con
     chatMessage.type = msgType;
     chatMessage.timestamp = timestamp;
     chatMessage.isOutgoing = false;
+    chatMessage.avatarPath = contact.avatar_url; // 对方头像，使用正确的字段名
     
     // 添加消息到UI
     auto chatUIManager = ChatUIManager::getInstance();
     chatUIManager->addMessage(fromUid, chatMessage);
     
     // 显示通知
-    auto contactManager = ContactManager::getInstance();
-    Contact contact;
     QString senderName;
-    if (contactManager->getContactInfo(fromUid, contact)) {
+    if (!contact.name.isEmpty()) {
         senderName = contact.name;
     } else {
         senderName = QString("用户%1").arg(fromUid);
@@ -653,50 +739,6 @@ void MainWindow::updateContactsView()
     ui->contactsTreeView->expandAll();
 }
 
-void MainWindow::displaySearchUserResults(const QJsonArray &users)
-{
-    if (users.isEmpty()) {
-        QMessageBox::information(this, "搜索结果", "未找到匹配的用户");
-        return;
-    }
-    
-    // 创建用户列表菜单
-    QMenu userListMenu(this);
-    
-    // 添加搜索结果
-    for (const QJsonValue &value : users) {
-        QJsonObject userObj = value.toObject();
-        
-        // 跳过自己
-        if (userObj["uid"].toVariant().toULongLong() == m_clientInfo.uid) {
-            continue;
-        }
-        
-        QString displayName = userObj.contains("nickname") && !userObj["nickname"].toString().isEmpty() ? 
-                             userObj["nickname"].toString() : userObj["username"].toString();
-        
-        QString menuText = QString("%1 (%2)").arg(displayName, userObj["username"].toString());
-        QAction *action = userListMenu.addAction(menuText);
-        
-        // 连接点击事件
-        connect(action, &QAction::triggered, [this, userObj]() {
-            // 添加联系人
-            auto contactManager = ContactManager::getInstance();
-            uint64_t friendId = userObj["uid"].toVariant().toULongLong();
-            contactManager->addContact(m_clientInfo.uid, m_clientInfo.token, friendId);
-        });
-    }
-    
-    // 如果没有搜索结果(除了自己)
-    if (userListMenu.actions().isEmpty()) {
-        QMessageBox::information(this, "搜索结果", "未找到匹配的用户");
-        return;
-    }
-    
-    // 显示菜单
-    userListMenu.exec(QCursor::pos());
-}
-
 void MainWindow::showNotification(const QString &title, const QString &message)
 {
     if (m_trayIcon) {
@@ -713,4 +755,44 @@ void MainWindow::updateConnectionStatus(bool isConnected, const QString &statusM
     statusBar()->showMessage(statusText);
     
     // 可以在这里更新其他UI元素以反映连接状态
+}
+
+void MainWindow::onUnreadCountChanged(uint64_t uid, int count)
+{
+    // 实现未读消息数量变化的逻辑
+    qDebug() << "MainWindow: 会话" << uid << "未读消息数变为" << count;
+    
+    // 可以在这里更新UI，比如在聊天按钮上显示未读数
+}
+
+void MainWindow::onTotalUnreadCountChanged(int totalCount)
+{
+    // 实现总未读消息数量变化的逻辑
+    qDebug() << "MainWindow: 总未读消息数变为" << totalCount;
+    
+    // 更新窗口标题显示未读数
+    if (totalCount > 0) {
+        setWindowTitle(QString("UChat (%1)").arg(totalCount));
+        
+        // 更新托盘图标提示
+        if (m_trayIcon) {
+            m_trayIcon->setToolTip(QString("UChat - %1条未读消息").arg(totalCount));
+        }
+    } else {
+        setWindowTitle("UChat");
+        if (m_trayIcon) {
+            m_trayIcon->setToolTip("UChat");
+        }
+    }
+}
+
+void MainWindow::onNewMessageReceived(uint64_t fromUid, const QString &content)
+{
+    // 实现新消息接收的逻辑
+    qDebug() << "MainWindow: 收到来自" << fromUid << "的新消息:" << content;
+    
+    // 如果窗口最小化或隐藏，闪烁任务栏图标
+    if (isMinimized() || isHidden()) {
+        QApplication::alert(this);
+    }
 }

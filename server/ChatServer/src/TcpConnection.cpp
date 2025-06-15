@@ -8,10 +8,11 @@
 
 using json = nlohmann::json;
 
-TcpConnection::TcpConnection(asio::io_context& io_context, const uint32_t timeout_seconds)
+TcpConnection::TcpConnection(asio::io_context& io_context, const uint32_t timeout_seconds, const std::string &server_id)
     : socket_(io_context),
       timeout_seconds_(timeout_seconds),
-      timeout_timer_(io_context), 
+      timeout_timer_(io_context),
+      server_id_(server_id),
       is_authenticated_(false) {
     // Generate unique connection ID
     conn_id_ = boost::uuids::to_string(boost::uuids::random_generator()());
@@ -22,6 +23,7 @@ TcpConnection::TcpConnection(asio::io_context& io_context, const uint32_t timeou
 
 TcpConnection::~TcpConnection() {
     LOG_DEBUG("销毁连接 ID: {}", conn_id_);
+    timeout_timer_.cancel();
 }
 
 void TcpConnection::start() {
@@ -124,6 +126,8 @@ void TcpConnection::readBody(uint16_t msg_id, uint16_t content_len) {
                     msg.msg_id = msg_id;
                     msg.content_len = content_len;
                     msg.content = std::string(body_.begin(), body_.end());
+
+                    LOG_DEBUG("<UNK>: {}", msg.content);
                     
                     // Call message callback if set
                     if (messageCallback_) {
@@ -149,7 +153,7 @@ void TcpConnection::handleError(const boost::system::error_code& error) {
         // 如果是已认证的用户，更新用户在线状态
         if (is_authenticated_ && uid_ > 0) {
             try {
-                auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(uid_, false);
+                auto reply = StatusGrpcClient::getInstance().UserOnlineStatusUpdate(uid_, server_id_, false);
                 if (reply.code() != UserOnlineStatusUpdateResponse_Code_OK) {
                     LOG_ERROR("更新用户离线状态失败: {}", reply.error_msg());
                 } else {

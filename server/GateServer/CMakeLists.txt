@@ -81,25 +81,18 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/RedisMgr.cpp
         src/RedisMgr.h
         src/RequestHandlers.h
-        src/MysqlConnPool.cpp
-        src/MysqlConnPool.h
-        src/MysqlDao.cpp
-        src/MysqlDao.h
-        src/MysqlMgr.cpp
-        src/MysqlMgr.h
         src/Logger.cpp
         src/Logger.h
         src/StatusGrpcClient.cpp
         src/StatusGrpcClient.h
-        src/models/UserInfo.cpp
-        src/models/UserInfo.h
         src/UserServiceClient.cpp
         src/UserServiceClient.h
+        src/RequestHandlers.cpp
 )
 
 target_include_directories(GateServerLib PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/models>
+        $<BUILD_INTERFACE:${GENERATED_DIR}>
 )
 
 target_link_libraries(GateServerLib PUBLIC

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <grpcpp/grpcpp.h>  
-#include "proto_generated/StatusServer.grpc.pb.h"
+#include "StatusServer.grpc.pb.h"
 #include <chrono>
 #include <unordered_map>
 #include <thread>
@@ -14,6 +14,8 @@ struct ChatServerInfo {
     std::string port;
     uint64_t current_connections;
     std::chrono::steady_clock::time_point last_heartbeat;
+    std::string message_queue_name;  // 该ChatServer监听的消息队列名称
+    std::string notification_queue_name;  // 该ChatServer监听的通知队列名称
 };
 
 class StatusServer : public StatusService::Service {

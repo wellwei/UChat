@@ -11,6 +11,7 @@
 class QStandardItemModel;
 class QListWidgetItem;
 class QModelIndex;
+class AddContactDialog;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -52,8 +53,6 @@ private slots:
     void onAddContactClicked();
     void onContactContextMenu(const QPoint &pos);
     void updateContactsView();
-    void displaySearchUserResults(const QJsonArray &users);
-
     
     // 搜索功能
     void onSearchConversations(const QString &text);
@@ -68,12 +67,20 @@ private slots:
     void onMessageReceived(uint64_t fromUid, const QString &content, const QString &msgType, qint64 timestamp);
     void onMessageSent(uint64_t toUid, const QString &content, bool success, const QString &message);
     void onNetworkError(const QString &errorMessage);
+    
+    // 未读消息处理
+    void onUnreadCountChanged(uint64_t uid, int count);
+    void onTotalUnreadCountChanged(int totalCount);
+    void onNewMessageReceived(uint64_t fromUid, const QString &content);
 
 private:
     // UI初始化方法
     void initUI();
     void initTrayIcon();
     void setupSignalsAndSlots();
+    void setupSearchBoxes();
+    void setupConversationList();
+    void updateSendButtonState();
     
     // 帮助方法
     void showNotification(const QString &title, const QString &message);
@@ -86,6 +93,9 @@ private:
     
     // 联系人模型
     QStandardItemModel *m_contactsModel;
+    
+    // 添加联系人对话框
+    AddContactDialog *m_addContactDialog;
     
     // 系统托盘
     QSystemTrayIcon *m_trayIcon;

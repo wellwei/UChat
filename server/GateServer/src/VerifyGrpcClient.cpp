@@ -12,7 +12,7 @@ VerifyGrpcClient::VerifyGrpcClient() {
     stub_pool_ = std::make_unique<GrpcStubPool<VerifyService>>(8, server_address); // 创建 gRPC 存根池
 }
 
-VerifyResponse VerifyGrpcClient::getVerifyCode(const std::string &email) {
+Status VerifyGrpcClient::getVerifyCode(const std::string &email) const {
     VerifyRequest request;         // 创建请求对象
     VerifyResponse reply;          // 创建响应对象
     ClientContext context;          // 创建上下文对象
@@ -21,11 +21,5 @@ VerifyResponse VerifyGrpcClient::getVerifyCode(const std::string &email) {
     auto stub = stub_pool_->getStub(); // 从存根池获取存根
     Status status = stub->GetVerifyCode(&context, request, &reply); // 发送请求并接收响应
     stub_pool_->returnStub(std::move(stub)); // 将存根放回池中
-    if (status.ok()) {
-        return reply; // 返回响应对象
-    } else {
-        reply.set_code(ErrorCode::RPC_ERROR);
-        LOG_ERROR("RPC faild: {}", status.error_message());
-        return reply; // 返回错误响应
-    }
+    return status;
 }

@@ -6,28 +6,20 @@
 #define GATESERVER_SINGLETON_H
 
 #include <memory>
-#include <iostream>
 
-template<typename T>
+template <typename T>
 class Singleton {
 protected:
     Singleton() = default;
-
-    Singleton(const Singleton<T> &) = delete;
-
-    Singleton &operator=(const Singleton<T> &) = delete;
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
 
 public:
+    ~Singleton() = default;
     static std::shared_ptr<T> getInstance() {
         static std::shared_ptr<T> instance(new T());
         return instance;
     }
-
-    void printAddress() {
-        std::cout << "Singleton instance address: " << this << std::endl;
-    }
-
-    ~Singleton() = default;
 };
 
 #endif //GATESERVER_SINGLETON_H

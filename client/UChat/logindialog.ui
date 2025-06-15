@@ -3,7 +3,7 @@
  <class>LoginDialog</class>
  <widget class="QDialog" name="LoginDialog">
   <property name="windowModality">
-   <enum>Qt::WindowModality::NonModal</enum>
+   <enum>Qt::NonModal</enum>
   </property>
   <property name="geometry">
    <rect>
@@ -29,7 +29,7 @@
    <string>UChat</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"></string>
+   <string notr="true"/>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -56,7 +56,7 @@
       </sizepolicy>
      </property>
      <property name="styleSheet">
-      <string notr="true"></string>
+      <string notr="true"/>
      </property>
      <property name="currentIndex">
       <number>0</number>
@@ -90,17 +90,17 @@
           <bool>false</bool>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_top">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Fixed</enum>
+          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -116,7 +116,7 @@
           <number>10</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="username_edit">
+          <widget class="QLineEdit" name="handle_edit">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -144,7 +144,7 @@
             </size>
            </property>
            <property name="echoMode">
-            <enum>QLineEdit::EchoMode::Password</enum>
+            <enum>QLineEdit::Password</enum>
            </property>
            <property name="placeholderText">
             <string>请输入密码</string>
@@ -161,7 +161,7 @@
          <item>
           <spacer name="horizontalSpacer_forget_left">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -195,23 +195,23 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"></string>
+          <string notr="true"/>
          </property>
          <property name="text">
           <string/>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_middle">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Expanding</enum>
+          <enum>QSizePolicy::Expanding</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -249,10 +249,10 @@
        <item>
         <spacer name="verticalSpacer_bottom">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Fixed</enum>
+          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -267,7 +267,7 @@
          <item>
           <spacer name="horizontalSpacer_switch_left">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -283,7 +283,7 @@
             <cursorShape>PointingHandCursor</cursorShape>
            </property>
            <property name="styleSheet">
-            <string notr="true"></string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string>注册账号</string>
@@ -296,7 +296,7 @@
          <item>
           <spacer name="horizontalSpacer_switch_right">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -345,17 +345,17 @@
           <string>欢迎注册 UChat</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_reg_top">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Fixed</enum>
+          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -417,10 +417,10 @@
             </size>
            </property>
            <property name="echoMode">
-            <enum>QLineEdit::EchoMode::Password</enum>
+            <enum>QLineEdit::Password</enum>
            </property>
            <property name="alignment">
-            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
            </property>
            <property name="placeholderText">
             <string>设置密码（8-20个字母、数字或特殊字符）</string>
@@ -446,7 +446,7 @@
             </size>
            </property>
            <property name="echoMode">
-            <enum>QLineEdit::EchoMode::Password</enum>
+            <enum>QLineEdit::Password</enum>
            </property>
            <property name="placeholderText">
             <string>确认密码</string>
@@ -469,7 +469,7 @@
             </size>
            </property>
            <property name="alignment">
-            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
            </property>
            <property name="placeholderText">
             <string>邮箱验证码</string>
@@ -503,23 +503,23 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"></string>
+          <string notr="true"/>
          </property>
          <property name="text">
           <string/>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_reg_middle">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Expanding</enum>
+          <enum>QSizePolicy::Expanding</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -554,10 +554,10 @@
        <item>
         <spacer name="verticalSpacer_reg_bottom">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::Policy::Fixed</enum>
+          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -572,7 +572,7 @@
          <item>
           <spacer name="horizontalSpacer_switch_reg_left">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -588,7 +588,7 @@
             <cursorShape>PointingHandCursor</cursorShape>
            </property>
            <property name="styleSheet">
-            <string notr="true"></string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string>已有账号？返回登录</string>
@@ -601,7 +601,7 @@
          <item>
           <spacer name="horizontalSpacer_switch_reg_right">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -635,7 +635,7 @@
        <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -663,14 +663,14 @@
           <string>重置密码</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -744,7 +744,7 @@
           </size>
          </property>
          <property name="echoMode">
-          <enum>QLineEdit::EchoMode::Password</enum>
+          <enum>QLineEdit::Password</enum>
          </property>
          <property name="placeholderText">
           <string>请输入新密码 (8-20位)</string>
@@ -763,7 +763,7 @@
           <string/>
          </property>
          <property name="echoMode">
-          <enum>QLineEdit::EchoMode::Password</enum>
+          <enum>QLineEdit::Password</enum>
          </property>
          <property name="placeholderText">
           <string>请确认新密码</string>
@@ -782,7 +782,7 @@
           <string/>
          </property>
          <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -802,7 +802,7 @@
        <item>
         <spacer name="verticalSpacer_3">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -823,7 +823,7 @@
          <item>
           <spacer name="horizontalSpacer_reset_back_left">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -846,7 +846,7 @@
          <item>
           <spacer name="horizontalSpacer_reset_back_right">
            <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
+            <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>

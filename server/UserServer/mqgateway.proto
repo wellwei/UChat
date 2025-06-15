@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package mqgateway;
+
+option go_package = "./proto";
+
+// 消息类型枚举
+enum MessageType {
+    CONTACT_REQUEST = 0;
+    CONTACT_ACCEPTED = 1;
+    CONTACT_REJECTED = 2;
+    CHAT_MESSAGE = 3;
+    SYSTEM_NOTIFICATION = 4;
+}
+
+// 发布消息请求
+message PublishMessageRequest {
+    string routing_key = 1;      // 路由键
+    MessageType message_type = 2; // 消息类型
+    string payload = 3;          // 消息内容 (JSON格式)
+    uint64 target_user_id = 4;   // 目标用户ID
+    uint64 sender_user_id = 5;   // 发送者用户ID
+    int64 timestamp = 6;         // 时间戳
+}
+
+message PublishMessageResponse {
+    bool success = 1;
+    string error_message = 2;
+    string message_id = 3;       // 消息ID
+}
+
+// 订阅消息请求
+message SubscribeRequest {
+    string queue_name = 1;       // 队列名称
+    repeated string routing_keys = 2; // 路由键列表
+}
+
+message SubscribeResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// 消息通知
+message MessageNotification {
+    string message_id = 1;
+    string routing_key = 2;
+    MessageType message_type = 3;
+    string payload = 4;
+    uint64 target_user_id = 5;
+    uint64 sender_user_id = 6;
+    int64 timestamp = 7;
+}
+
+// 批量发布消息请求
+message BatchPublishRequest {
+    repeated PublishMessageRequest messages = 1;
+}
+
+message BatchPublishResponse {
+    bool success = 1;
+    string error_message = 2;
+    repeated string message_ids = 3;
+}
+
+// 健康检查
+message HealthCheckRequest {
+}
+
+message HealthCheckResponse {
+    bool healthy = 1;
+    string status = 2;
+    map<string, string> details = 3;
+}
+
+// MQ网关服务
+service MQGatewayService {
+    // 发布单条消息
+    rpc PublishMessage(PublishMessageRequest) returns (PublishMessageResponse);
+    
+    // 批量发布消息
+    rpc BatchPublish(BatchPublishRequest) returns (BatchPublishResponse);
+    
+    // 订阅消息 (流式)
+    rpc Subscribe(SubscribeRequest) returns (stream MessageNotification);
+    
+    // 健康检查
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+} 

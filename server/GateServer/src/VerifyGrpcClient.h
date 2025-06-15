@@ -18,7 +18,7 @@ class VerifyGrpcClient : public Singleton<VerifyGrpcClient> {
     friend class Singleton<VerifyGrpcClient>;
 
 public:
-    VerifyResponse getVerifyCode(const std::string &email);
+    Status getVerifyCode(const std::string &email) const;
 
 private:
     VerifyGrpcClient();

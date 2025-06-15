@@ -46,6 +46,15 @@ ContactManager::ContactManager(QObject *parent) : QObject(parent)
             case ReqId::ID_SEARCH_USER:
                 processSearchUserResult(jsonObj);
                 break;
+            case ReqId::ID_SEND_CONTACT_REQUEST:
+                processSendContactRequestResult(jsonObj);
+                break;
+            case ReqId::ID_HANDLE_CONTACT_REQUEST:
+                processHandleContactRequestResult(jsonObj);
+                break;
+            case ReqId::ID_GET_CONTACT_REQUESTS:
+                processGetContactRequestsResult(jsonObj);
+                break;
             default:
                 break;
         }
@@ -62,16 +71,28 @@ void ContactManager::getContacts(const uint64_t &uid, const QString &token)
     httpMgr->getContacts(uid, token);
 }
 
-void ContactManager::addContact(const uint64_t &uid, const QString &token, const uint64_t &friendId)
-{
-    auto httpMgr = HttpMgr::getInstance();
-    httpMgr->addContact(uid, token, friendId);
-}
-
 void ContactManager::searchUser(const uint64_t &uid, const QString &token, const QString &keyword)
 {
     auto httpMgr = HttpMgr::getInstance();
     httpMgr->searchUser(uid, token, keyword);
+}
+
+void ContactManager::sendContactRequest(const uint64_t &uid, const QString &token, const uint64_t &addresseeId, const QString &message)
+{
+    auto httpMgr = HttpMgr::getInstance();
+    httpMgr->sendContactRequest(uid, token, addresseeId, message);
+}
+
+void ContactManager::handleContactRequest(const uint64_t &uid, const QString &token, const uint64_t &requestId, ContactRequestStatus action)
+{
+    auto httpMgr = HttpMgr::getInstance();
+    httpMgr->handleContactRequest(uid, token, requestId, action);
+}
+
+void ContactManager::getContactRequests(const uint64_t &uid, const QString &token, ContactRequestStatus status)
+{
+    auto httpMgr = HttpMgr::getInstance();
+    httpMgr->getContactRequests(uid, token, status);
 }
 
 bool ContactManager::getContactInfo(uint64_t uid, Contact &contact) const
@@ -90,7 +111,11 @@ const QMap<uint64_t, Contact>& ContactManager::getAllContacts() const
 
 QStandardItem* ContactManager::createContactItem(const Contact &contact)
 {
-    QStandardItem *item = new QStandardItem();
+    // 创建头像
+    QPixmap avatar = createAvatarPixmap(contact.avatar_url, contact.isOnline);
+    
+    // 创建项目
+    auto item = new QStandardItem(QIcon(avatar), contact.name);
     item->setData(QVariant::fromValue(contact.uid), Qt::UserRole);
     
     // 创建自定义小部件
@@ -101,8 +126,7 @@ QStandardItem* ContactManager::createContactItem(const Contact &contact)
     // 头像
     QLabel *avatarLabel = new QLabel();
     avatarLabel->setFixedSize(32, 32);
-    QPixmap avatarPixmap = createAvatarPixmap(contact.avatarPath, contact.isOnline);
-    avatarLabel->setPixmap(avatarPixmap);
+    avatarLabel->setPixmap(avatar);
     
     // 名称和状态
     QVBoxLayout *textLayout = new QVBoxLayout();
@@ -129,54 +153,20 @@ QStandardItem* ContactManager::createContactItem(const Contact &contact)
 
 void ContactManager::processGetContactsResult(const QJsonObject &jsonObj)
 {
-    // 清空当前联系人列表
     m_contacts.clear();
-    
-    // 解析联系人列表
     QJsonArray contactsArray = jsonObj["contacts"].toArray();
     for (const QJsonValue &value : contactsArray) {
         QJsonObject contactObj = value.toObject();
-        
         Contact contact;
         contact.uid = contactObj["uid"].toVariant().toULongLong();
-        contact.name = contactObj.contains("nickname") && !contactObj["nickname"].toString().isEmpty() ?
+        contact.name = contactObj.contains("nickname") && !contactObj["nickname"].toString().isEmpty() ? 
                       contactObj["nickname"].toString() : contactObj["username"].toString();
-        contact.avatarPath = contactObj["avatar_url"].toString();
+        contact.avatar_url = contactObj["avatar_url"].toString();
+        contact.status = contactObj["status"].toString();
+        contact.isOnline = contact.status == "online";
         contact.signature = contactObj["signature"].toString();
-        
-        // 判断在线状态 (0=离线, 1=在线)
-        int statusCode = contactObj["status"].toInt();
-        contact.isOnline = statusCode > 0;
-        
-        // 设置状态文本
-        switch (statusCode) {
-            case 0:
-                contact.status = "离线";
-                break;
-            case 1:
-                contact.status = "在线";
-                break;
-            case 2:
-                contact.status = "忙碌";
-                break;
-            case 3:
-                contact.status = "离开";
-                break;
-            case 4:
-                contact.status = "隐身";
-                break;
-            case 5:
-                contact.status = "请勿打扰";
-                break;
-            default:
-                contact.status = "未知状态";
-                break;
-        }
-        
-        m_contacts[contact.uid] = contact;
+        m_contacts.insert(contact.uid, contact);
     }
-    
-    // 发出联系人更新信号
     emit contactsUpdated();
 }
 
@@ -194,52 +184,74 @@ void ContactManager::processSearchUserResult(const QJsonObject &jsonObj)
     emit userSearchCompleted(usersArray);
 }
 
-QPixmap ContactManager::createAvatarPixmap(const QString &avatarPath, bool isOnline)
+void ContactManager::processSendContactRequestResult(const QJsonObject &jsonObj)
 {
-    QPixmap avatarPixmap;
+    uint64_t requestId = jsonObj["request_id"].toVariant().toULongLong();
+    emit contactRequestSent(requestId);
+}
+
+void ContactManager::processHandleContactRequestResult(const QJsonObject &jsonObj)
+{
+    uint64_t action = jsonObj["action"].toVariant().toLongLong();
+    uint64_t requestId = jsonObj["request_id"].toVariant().toULongLong();
+    emit contactRequestHandled(requestId, action);
+}
+
+void ContactManager::processGetContactRequestsResult(const QJsonObject &jsonObj)
+{
+    // 清空当前请求列表
+    m_contactRequests.clear();
     
-    if (!avatarPath.isEmpty() && QFile::exists(avatarPath)) {
-        avatarPixmap.load(avatarPath);
-    } else {
-        // 创建随机颜色的默认头像
-        QColor color(
-            QRandomGenerator::global()->bounded(100, 240),
-            QRandomGenerator::global()->bounded(100, 240),
-            QRandomGenerator::global()->bounded(100, 240)
-        );
+    // 解析请求列表
+    QJsonArray requestsArray = jsonObj["requests"].toArray();
+    for (const QJsonValue &value : requestsArray) {
+        QJsonObject requestObj = value.toObject();
         
-        avatarPixmap = QPixmap(40, 40);
-        avatarPixmap.fill(Qt::transparent);
+        ContactRequest request;
+        request.request_id = requestObj["request_id"].toVariant().toULongLong();
+        request.requester_id = requestObj["requester_id"].toVariant().toULongLong();
+        request.requester_name = requestObj["requester_name"].toString();
+        request.requester_nickname = requestObj["requester_nickname"].toString();
+        request.requester_avatar = requestObj["requester_avatar"].toString();
+        request.request_message = requestObj["request_message"].toString();
+        request.status = static_cast<ContactRequestStatus>(requestObj["status"].toInt());
+        request.created_at = requestObj["created_at"].toString();
+        request.updated_at = requestObj["updated_at"].toString();
         
-        QPainter painter(&avatarPixmap);
-        painter.setRenderHint(QPainter::Antialiasing);
-        
-        QPainterPath path;
-        path.addEllipse(0, 0, 40, 40);
-        painter.setClipPath(path);
-        painter.fillRect(0, 0, 40, 40, color);
-        
-        // 可以在这里添加头像的首字母
+        m_contactRequests.append(request);
     }
     
-    // 裁剪为圆形
-    QPixmap roundedPixmap(40, 40);
-    roundedPixmap.fill(Qt::transparent);
+    // 发出请求列表更新信号
+    emit contactRequestsUpdated();
+}
+
+QPixmap ContactManager::createAvatarPixmap(const QString &avatarUrl, bool isOnline)
+{
+    // 创建圆形头像
+    QPixmap pixmap(avatarUrl.isEmpty() ? ":/resource/image/default-avatar.svg" : avatarUrl);
     
-    QPainter painter(&roundedPixmap);
+    QPixmap rounded(pixmap.size());
+    rounded.fill(Qt::transparent);
+    
+    QPainter painter(&rounded);
     painter.setRenderHint(QPainter::Antialiasing);
     
     QPainterPath path;
-    path.addEllipse(0, 0, 40, 40);
+    path.addEllipse(0, 0, pixmap.width(), pixmap.height());
     painter.setClipPath(path);
-    painter.drawPixmap(0, 0, avatarPixmap.scaled(40, 40, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+    painter.drawPixmap(0, 0, pixmap.scaled(pixmap.width(), pixmap.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
     
     // 添加在线状态指示器
     if (isOnline) {
         painter.setBrush(QBrush(Qt::green));
         painter.setPen(QPen(Qt::white, 1));
-        painter.drawEllipse(30, 30, 8, 8);
+        painter.drawEllipse(pixmap.width() - 10, pixmap.height() - 10, 8, 8);
     }
     
-    return roundedPixmap;
+    return rounded;
+}
+
+const QList<ContactRequest>& ContactManager::getContactRequestsList() const
+{
+    return m_contactRequests;
 } 

@@ -24,13 +24,16 @@ GetChatServerResponse StatusGrpcClient::GetChatServer(const uint64_t &uid) {
     return reply;
 }
 
-RegisterChatServerResponse StatusGrpcClient::RegisterChatServer(const std::string &server_id, const std::string &host, const std::string &port) {
+RegisterChatServerResponse StatusGrpcClient::RegisterChatServer(const std::string &server_id, const std::string &host, const std::string &port, 
+                                                             const std::string &message_queue_name, const std::string &notification_queue_name) {
     RegisterChatServerRequest request;
     RegisterChatServerResponse reply;
     grpc::ClientContext context;
     request.set_server_id(server_id);
     request.set_host(host);
     request.set_port(port);
+    request.set_message_queue_name(message_queue_name);
+    request.set_notification_queue_name(notification_queue_name);
     auto stub = stubs_->getStub();
     grpc::Status status = stub->RegisterChatServer(&context, request, &reply);
     stubs_->returnStub(std::move(stub));
@@ -69,11 +72,12 @@ ChatServerHeartbeatResponse StatusGrpcClient::ChatServerHeartbeat(const std::str
     return reply;
 }
 
-UserOnlineStatusUpdateResponse StatusGrpcClient::UserOnlineStatusUpdate(const uint64_t &uid, const bool &online) {
+UserOnlineStatusUpdateResponse StatusGrpcClient::UserOnlineStatusUpdate(const uint64_t &uid, const std::string &server_id, const bool &online) {
     UserOnlineStatusUpdateRequest request;
     UserOnlineStatusUpdateResponse reply;
     grpc::ClientContext context;
     request.set_uid(uid);
+    request.set_server_id(server_id);
     request.set_online(online);
     auto stub = stubs_->getStub();
     grpc::Status status = stub->UserOnlineStatusUpdate(&context, request, &reply);

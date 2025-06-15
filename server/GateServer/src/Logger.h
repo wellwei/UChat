@@ -12,6 +12,7 @@
 #include <spdlog/sinks/dist_sink.h>
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
+#include <iostream>
 
 class TimeAndSizeRollingFileSink : public spdlog::sinks::base_sink<std::mutex> {
 public:

@@ -16,5 +16,8 @@
         <file>resource/image/user-add-pressed.svg</file>
         <file>resource/image/user-add.svg</file>
         <file>resource/image/search.svg</file>
+        <file>resource/image/group-pressed.svg</file>
+        <file>resource/image/group.svg</file>
+        <file>resource/image/default-avatar.svg</file>
     </qresource>
 </RCC>

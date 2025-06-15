@@ -25,34 +25,43 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
 # qt feature "timezone"
 set(QT_FEATURE_TIMEZONE TRUE)
 
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.hpp
-        mainwindow.ui
-        global.cpp
-        global.h
-        Singleton.cpp
-        Singleton.h
-        HttpMgr.cpp
-        HttpMgr.h
-        timerbutton.cpp
-        timerbutton.hpp
-        ChatConnection.cpp
-        ChatConnection.h
-        ChatManager.cpp
-        ChatManager.h
-        ContactManager.cpp
-        ContactManager.h
-        ChatUIManager.cpp
-        ChatUIManager.h
-        ${TS_FILES}
+set(SOURCES
+    main.cpp
+    logindialog.cpp
+    mainwindow.cpp
+    ChatManager.cpp
+    ChatConnection.cpp
+    HttpMgr.cpp
+    ContactManager.cpp
+    ChatUIManager.cpp
+    AddContactDialog.cpp
+    timerbutton.cpp
+    global.cpp
+    MessageDelegate.cpp
+    ChatMessageModel.cpp
+)
+
+set(HEADERS
+    logindialog.hpp
+    mainwindow.hpp
+    ChatManager.h
+    ChatConnection.h
+    HttpMgr.h
+    ContactManager.h
+    ChatUIManager.h
+    AddContactDialog.h
+    timerbutton.hpp
+    Singleton.h
+    global.h
+    MessageDelegate.h
+    ChatMessageModel.h
 )
 
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(UChat
             MANUAL_FINALIZATION
-            ${PROJECT_SOURCES}
+            ${SOURCES}
+            ${HEADERS}
             resource.qrc
             logindialog.hpp logindialog.cpp logindialog.ui
     )
@@ -65,13 +74,15 @@ if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 else ()
     if (ANDROID)
         add_library(UChat SHARED
-                ${PROJECT_SOURCES}
+                ${SOURCES}
+                ${HEADERS}
         )
         # Define properties for Android with Qt 5 after find_package() calls as:
         #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else ()
         add_executable(UChat
-                ${PROJECT_SOURCES}
+                ${SOURCES}
+                ${HEADERS}
         )
     endif ()
 

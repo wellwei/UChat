@@ -1,23 +1,23 @@
 #include "ChatUIManager.h"
-#include <QTextBrowser>
-#include <QListWidget>
+#include "ContactManager.h"
+#include "MessageDelegate.h"
+#include <QDebug>
 #include <QLabel>
-#include <QDateTime>
-#include <QScrollBar>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
+#include <QListView>
+#include <QListWidget>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
-#include <QDebug>
-#include "ContactManager.h"
+#include <QScrollBar>
+#include <QVBoxLayout>
 
 ChatUIManager::ChatUIManager(QObject *parent) : QObject(parent),
-    m_conversationsList(nullptr),
-    m_messageBrowser(nullptr),
-    m_chatTitleLabel(nullptr),
-    m_currentChatUid(0),
-    m_currentUserId(0)
+                                                m_conversationsList(nullptr),
+                                                m_messageListView(nullptr),
+                                                m_chatTitleLabel(nullptr),
+                                                m_chatModel(new ChatMessageModel(this)),
+                                                m_currentChatUid(0),
+                                                m_currentUserId(0)
 {
 }
 
@@ -25,17 +25,33 @@ ChatUIManager::~ChatUIManager()
 {
 }
 
-void ChatUIManager::initUI(QListWidget *conversationsList, QTextBrowser *messageBrowser, QLabel *chatTitleLabel)
+void ChatUIManager::initUI(QListWidget *conversationsList, QListView *messageListView, QLabel *chatTitleLabel)
 {
     m_conversationsList = conversationsList;
-    m_messageBrowser = messageBrowser;
+    m_messageListView = messageListView;
     m_chatTitleLabel = chatTitleLabel;
-    
-    // 连接信号和槽
+
     if (m_conversationsList) {
         connect(m_conversationsList, &QListWidget::itemClicked, this, &ChatUIManager::onConversationSelected);
+        m_conversationsList->setUniformItemSizes(false);
+    }
+
+    if (m_messageListView) {
+        m_messageListView->setModel(m_chatModel);
+        m_messageListView->setItemDelegate(new MessageDelegate(this));
+        
+        // 优化ListView样式和行为
+        m_messageListView->setSelectionMode(QAbstractItemView::NoSelection);
+        m_messageListView->setFocusPolicy(Qt::NoFocus);
+        m_messageListView->setFrameShape(QFrame::NoFrame);
+        m_messageListView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        m_messageListView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        m_messageListView->setResizeMode(QListView::Adjust);
+        m_messageListView->setUniformItemSizes(false); 
+        m_messageListView->setAutoScroll(true);
     }
 }
+
 
 void ChatUIManager::loadConversations(const QMap<uint64_t, Conversation> &conversations)
 {
@@ -68,31 +84,31 @@ void ChatUIManager::updateConversationList()
 void ChatUIManager::createConversationItem(const Conversation &conversation)
 {
     if (!m_conversationsList) return;
-    
-    QListWidgetItem *item = new QListWidgetItem(m_conversationsList);
+
+    auto item = new QListWidgetItem(m_conversationsList);
     item->setData(Qt::UserRole, QVariant::fromValue(conversation.uid));
     
     // 创建包含头像、名称、最后消息和时间的复杂项目
-    QWidget *itemWidget = new QWidget(m_conversationsList);
-    QHBoxLayout *layout = new QHBoxLayout(itemWidget);
+    auto itemWidget = new QWidget();
+    const auto layout = new QHBoxLayout(itemWidget);
     
     // 头像
-    QLabel *avatarLabel = new QLabel(itemWidget);
+    const auto avatarLabel = new QLabel(itemWidget);
     avatarLabel->setFixedSize(40, 40);
-    QPixmap avatarPixmap = ContactManager::createAvatarPixmap(conversation.avatarPath);
+    const QPixmap avatarPixmap = ContactManager::createAvatarPixmap(conversation.avatarPath);
     avatarLabel->setPixmap(avatarPixmap);
     avatarLabel->setScaledContents(true);
     
     // 名称、消息和时间的垂直布局
-    QVBoxLayout *textLayout = new QVBoxLayout();
+    const auto textLayout = new QVBoxLayout();
     textLayout->setSpacing(2);
     
     // 第一行：名称和时间
-    QHBoxLayout *nameTimeLayout = new QHBoxLayout();
-    QLabel *nameLabel = new QLabel(conversation.name, itemWidget);
+    const auto nameTimeLayout = new QHBoxLayout();
+    const auto nameLabel = new QLabel(conversation.name, itemWidget);
     nameLabel->setStyleSheet("font-weight: bold;");
-    
-    QLabel *timeLabel = new QLabel(formatMessageTime(conversation.lastMessageTime), itemWidget);
+
+    const auto timeLabel = new QLabel(formatMessageTime(conversation.lastMessageTime), itemWidget);
     timeLabel->setStyleSheet("color: gray; font-size: 9pt;");
     timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     
@@ -100,13 +116,13 @@ void ChatUIManager::createConversationItem(const Conversation &conversation)
     nameTimeLayout->addWidget(timeLabel);
     
     // 第二行：最后消息和未读数
-    QHBoxLayout *msgCountLayout = new QHBoxLayout();
-    QLabel *msgLabel = new QLabel(conversation.lastMessage, itemWidget);
+    const auto msgCountLayout = new QHBoxLayout();
+    const auto msgLabel = new QLabel(conversation.lastMessage, itemWidget);
     msgLabel->setStyleSheet("color: gray; font-size: 9pt;");
     msgLabel->setMaximumWidth(200);
     
     // 文本省略
-    QString elidedText = msgLabel->fontMetrics().elidedText(
+    const QString elidedText = msgLabel->fontMetrics().elidedText(
         conversation.lastMessage, Qt::ElideRight, msgLabel->maximumWidth());
     msgLabel->setText(elidedText);
     
@@ -146,52 +162,67 @@ void ChatUIManager::createConversationItem(const Conversation &conversation)
 
 void ChatUIManager::loadChatHistory(uint64_t uid)
 {
-    if (!m_messageBrowser) return;
+    if (!m_messageListView) return;
     
-    // 清空消息显示区域
-    m_messageBrowser->clear();
+    m_chatModel->clearMessages();
     
-    if (m_conversations.contains(uid)) {
-        // 获取聊天历史记录
-        // 实际项目中这里会从服务器请求历史消息
-        
-        // 如果本地已有消息，显示它们
-        const QList<ChatMessage> &messages = m_conversations[uid].messages;
+    if (m_messageHistories.contains(uid)) {
+        const QList<ChatMessage> &messages = m_messageHistories.value(uid);
         for (const ChatMessage &msg : messages) {
-            displayMessage(msg);
+            m_chatModel->addMessage(msg);
         }
     }
     
-    // 滚动到底部
     scrollToBottom();
-}
-
-void ChatUIManager::displayMessage(const ChatMessage &message)
-{
-    addMessageToBrowser(message);
-    emit messageDisplayed();
 }
 
 void ChatUIManager::addMessage(uint64_t chatUid, const ChatMessage &message)
 {
-    if (m_conversations.contains(chatUid)) {
-        // 添加消息到会话
-        m_conversations[chatUid].messages.append(message);
-        m_conversations[chatUid].lastMessage = message.content;
-        m_conversations[chatUid].lastMessageTime = message.timestamp;
+    // 存储历史记录
+    m_messageHistories[chatUid].append(message);
+    
+    // 确保会话存在，如果不存在则创建
+    if (!m_conversations.contains(chatUid)) {
+        // 尝试从ContactManager获取联系人信息
+        auto contactManager = ContactManager::getInstance();
+        Contact contact;
+        QString name;
+        QString avatarPath;
         
-        // 如果不是当前会话，增加未读计数
-        if (chatUid != m_currentChatUid && !message.isOutgoing) {
-            m_conversations[chatUid].unreadCount++;
+        if (contactManager->getContactInfo(chatUid, contact)) {
+            name = contact.name;
+            avatarPath = contact.avatar_url;
+        } else {
+            // 如果没有联系人信息，使用默认名称
+            name = QString("用户%1").arg(chatUid);
+            avatarPath = QString(); // 使用默认头像
         }
         
-        // 更新UI
-        updateConversationList();
+        // 创建新会话
+        createOrGetConversation(chatUid, name, avatarPath);
+    }
+    
+    // 更新会话信息
+    m_conversations[chatUid].lastMessage = message.content;
+    m_conversations[chatUid].lastMessageTime = message.timestamp;
+    
+    // 如果不是当前聊天且是接收消息，增加未读计数
+    if (chatUid != m_currentChatUid && !message.isOutgoing) {
+        m_conversations[chatUid].unreadCount++;
         
-        // 如果是当前聊天对象，显示消息
-        if (chatUid == m_currentChatUid) {
-            displayMessage(message);
-        }
+        // 发出新消息信号
+        emit newMessageReceived(chatUid, message.content);
+        emit unreadCountChanged(chatUid, m_conversations[chatUid].unreadCount);
+        emit totalUnreadCountChanged(getTotalUnreadCount());
+    }
+    
+    // 更新会话列表（重新排序，显示未读数等）
+    updateConversationList();
+    
+    // 如果是当前聊天，添加到消息模型并滚动到底部
+    if (chatUid == m_currentChatUid) {
+        m_chatModel->addMessage(message);
+        scrollToBottom();
     }
 }
 
@@ -268,11 +299,8 @@ void ChatUIManager::onConversationSelected(QListWidgetItem *item)
         // 更新当前聊天对象
         setCurrentChatUid(uid);
         
-        // 重置未读消息计数
-        m_conversations[uid].unreadCount = 0;
-        
-        // 更新会话列表项以反映未读数的变化
-        updateConversationList();
+        // 标记为已读（使用新方法）
+        markAsRead(uid);
         
         // 加载聊天历史
         loadChatHistory(uid);
@@ -282,69 +310,11 @@ void ChatUIManager::onConversationSelected(QListWidgetItem *item)
     }
 }
 
-void ChatUIManager::addMessageToBrowser(const ChatMessage &message)
-{
-    if (!m_messageBrowser) return;
-    
-    QTextCursor cursor(m_messageBrowser->document());
-    cursor.movePosition(QTextCursor::End);
-    
-    // 在每条消息之间添加一些垂直空间
-    QTextBlockFormat blockFormat;
-    blockFormat.setTopMargin(8);
-    cursor.insertBlock(blockFormat);
-    
-    // 确定消息发送者的名称和颜色
-    QString senderName;
-    QString bubbleStyle;
-    Qt::Alignment alignment;
-    
-    if (message.isOutgoing) {
-        senderName = m_currentUserName;
-        alignment = Qt::AlignRight;
-        bubbleStyle = "background-color: #DCF8C6; border-radius: 8px; padding: 8px; margin-left: 80px; margin-right: 10px;";
-    } else {
-        // 查找联系人名称
-        auto contactManager = ContactManager::getInstance();
-        Contact contact;
-        if (contactManager->getContactInfo(message.senderId, contact)) {
-            senderName = contact.name;
-        } else if (m_conversations.contains(message.senderId)) {
-            senderName = m_conversations[message.senderId].name;
-        } else {
-            senderName = QString("用户%1").arg(message.senderId);
-        }
-        alignment = Qt::AlignLeft;
-        bubbleStyle = "background-color: #FFFFFF; border-radius: 8px; padding: 8px; margin-right: 80px; margin-left: 10px;";
-    }
-    
-    // 格式化时间
-    QString timeStr = formatMessageTime(message.timestamp);
-    
-    // 创建RTF文档片段
-    QString html = QString(
-        "<div style='margin: 5px;'>"
-        "   <div style='%1'>"
-        "       <div style='font-size: 9pt; color: #888888;'>%2</div>"
-        "       <div>%3</div>"
-        "       <div style='font-size: 8pt; color: #888888; text-align: right;'>%4</div>"
-        "   </div>"
-        "</div>"
-    ).arg(bubbleStyle, senderName, message.content, timeStr);
-    
-    // 插入HTML
-    cursor.insertHtml(html);
-    
-    // 滚动到底部
-    scrollToBottom();
-}
-
 void ChatUIManager::scrollToBottom()
 {
-    if (!m_messageBrowser) return;
+    if (!m_messageListView) return;
     
-    QScrollBar *scrollBar = m_messageBrowser->verticalScrollBar();
-    scrollBar->setValue(scrollBar->maximum());
+    m_messageListView->scrollToBottom();
 }
 
 QString ChatUIManager::formatMessageTime(qint64 timestamp)
@@ -366,5 +336,79 @@ QString ChatUIManager::formatMessageTime(qint64 timestamp)
     } else {
         // 其他 - 显示完整日期和时间
         return messageTime.toString("yyyy-MM-dd HH:mm");
+    }
+}
+
+void ChatUIManager::createOrGetConversation(uint64_t uid, const QString &name, const QString &avatarPath)
+{
+    // 如果会话已存在，直接返回
+    if (m_conversations.contains(uid)) {
+        return;
+    }
+    
+    // 创建新会话
+    Conversation newConversation;
+    newConversation.uid = uid;
+    newConversation.name = name.isEmpty() ? QString("用户%1").arg(uid) : name;
+    newConversation.avatarPath = avatarPath;
+    newConversation.lastMessage = QString(); // 初始为空
+    newConversation.lastMessageTime = QDateTime::currentDateTime().toSecsSinceEpoch();
+    newConversation.unreadCount = 0;
+    
+    // 添加到会话映射
+    m_conversations[uid] = newConversation;
+    
+    qDebug() << "ChatUIManager: 创建新会话 - UID:" << uid << ", 名称:" << newConversation.name;
+}
+
+int ChatUIManager::getTotalUnreadCount() const
+{
+    int totalCount = 0;
+    for (auto it = m_conversations.begin(); it != m_conversations.end(); ++it) {
+        totalCount += it.value().unreadCount;
+    }
+    return totalCount;
+}
+
+int ChatUIManager::getUnreadCount(uint64_t uid) const
+{
+    if (m_conversations.contains(uid)) {
+        return m_conversations[uid].unreadCount;
+    }
+    return 0;
+}
+
+void ChatUIManager::markAsRead(uint64_t uid)
+{
+    if (m_conversations.contains(uid) && m_conversations[uid].unreadCount > 0) {
+        int oldCount = m_conversations[uid].unreadCount;
+        m_conversations[uid].unreadCount = 0;
+        
+        // 更新会话列表显示
+        updateConversationList();
+        
+        // 发出信号
+        emit unreadCountChanged(uid, 0);
+        emit totalUnreadCountChanged(getTotalUnreadCount());
+        
+        qDebug() << "ChatUIManager: 标记会话为已读 - UID:" << uid << ", 之前未读数:" << oldCount;
+    }
+}
+
+void ChatUIManager::markAllAsRead()
+{
+    bool hasUnread = false;
+    for (auto it = m_conversations.begin(); it != m_conversations.end(); ++it) {
+        if (it.value().unreadCount > 0) {
+            it.value().unreadCount = 0;
+            hasUnread = true;
+            emit unreadCountChanged(it.key(), 0);
+        }
+    }
+    
+    if (hasUnread) {
+        updateConversationList();
+        emit totalUnreadCountChanged(0);
+        qDebug() << "ChatUIManager: 标记所有会话为已读";
     }
 } 

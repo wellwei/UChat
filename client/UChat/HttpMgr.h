@@ -39,14 +39,16 @@ public:
     // 获取用户资料
     void getUserProfile(const uint64_t &uid, const QString &token);
     
-    // 添加联系人
-    void addContact(const uint64_t &uid, const QString &token, const uint64_t &friendId);
-    
     // 获取联系人列表
     void getContacts(const uint64_t &uid, const QString &token);
     
     // 搜索用户
     void searchUser(const uint64_t &uid, const QString &token, const QString &keyword);
+
+    // 新增：联系人请求相关方法
+    void sendContactRequest(const uint64_t &uid, const QString &token, const uint64_t &addresseeId, const QString &message);
+    void handleContactRequest(const uint64_t &uid, const QString &token, const uint64_t &requestId, ContactRequestStatus action);
+    void getContactRequests(const uint64_t &uid, const QString &token, ContactRequestStatus status);
 
 private:
     friend class Singleton<HttpMgr>;

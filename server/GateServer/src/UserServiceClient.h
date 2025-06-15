@@ -1,7 +1,6 @@
 #pragma once 
 
-#include "user_service.grpc.pb.h"
-#include "user_service.pb.h"
+#include "userserver.grpc.pb.h"
 #include "Singleton.h"
 #include "GrpcStubPool.h"
 #include <nlohmann/json.hpp>
@@ -19,7 +18,7 @@ public:
     bool VerifyCredentials(const std::string& handle, const std::string& password, nlohmann::json& response);
 
     // 创建用户
-    bool CreateUser(const std::string& username, const std::string& password, const std::string& email, uint64_t& uid);
+    uint32_t CreateUser(const std::string& username, const std::string& password, const std::string& email, uint64_t& uid);
 
     // 获取用户资料
     bool GetUserProfile(const uint64_t uid, nlohmann::json& user_info);
@@ -30,14 +29,20 @@ public:
     // 重置密码
     bool ResetPassword(const std::string& email, const std::string& new_password);
     
-    // 添加联系人
-    bool AddContact(const uint64_t user_id, const uint64_t friend_id, nlohmann::json& response);
-    
     // 获取联系人列表
     bool GetContacts(const uint64_t uid, nlohmann::json& contacts);
     
     // 搜索用户
     bool SearchUser(const std::string& keyword, nlohmann::json& users);
+
+    // 发送联系人请求
+    bool SendContactRequest(const uint64_t requester_id, const uint64_t addressee_id, const std::string& message, uint64_t& request_id);
+    
+    // 处理联系人请求
+    bool HandleContactRequest(const uint64_t request_id, const uint64_t user_id, int action);
+    
+    // 获取联系人请求列表
+    bool GetContactRequests(const uint64_t user_id, int status, nlohmann::json& requests);
 
 private:
     UserServiceClient();

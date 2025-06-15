@@ -3,31 +3,23 @@
 
 #include <QObject>
 #include <QMap>
-#include <QListWidgetItem>
 #include "global.h"
 #include "Singleton.h"
+#include "ChatMessageModel.h"
 
-struct ChatMessage {
-    uint64_t senderId;
-    uint64_t receiverId;
-    QString content;
-    QString type;
-    qint64 timestamp;
-    bool isOutgoing;
-};
-
+// Conversation 结构体
 struct Conversation {
     uint64_t uid;
     QString name;
     QString avatarPath;
-    QList<ChatMessage> messages;
     QString lastMessage;
     qint64 lastMessageTime;
     int unreadCount;
 };
 
-class QTextBrowser;
+class QListView;
 class QListWidget;
+class QListWidgetItem;
 class QLabel;
 
 class ChatUIManager : public QObject, public Singleton<ChatUIManager>
@@ -38,7 +30,7 @@ public:
     ~ChatUIManager();
 
     // 初始化UI控件引用
-    void initUI(QListWidget *conversationsList, QTextBrowser *messageBrowser, QLabel *chatTitleLabel);
+    void initUI(QListWidget *conversationsList, QListView *messageListView, QLabel *chatTitleLabel);
     
     // 加载会话列表
     void loadConversations(const QMap<uint64_t, Conversation> &conversations);
@@ -51,9 +43,6 @@ public:
     
     // 加载聊天历史
     void loadChatHistory(uint64_t uid);
-    
-    // 显示消息
-    void displayMessage(const ChatMessage &message);
     
     // 添加新消息
     void addMessage(uint64_t chatUid, const ChatMessage &message);
@@ -73,19 +62,30 @@ public:
     // 开始新会话
     void startNewChat(uint64_t uid, const QString &name, const QString &avatarPath = QString());
 
+    // 创建或获取会话（新增方法）
+    void createOrGetConversation(uint64_t uid, const QString &name = QString(), const QString &avatarPath = QString());
+
+    // 未读消息管理方法
+    int getTotalUnreadCount() const;
+    int getUnreadCount(uint64_t uid) const;
+    void markAsRead(uint64_t uid);
+    void markAllAsRead();
+
 signals:
     void conversationSelected(uint64_t uid);
-    void messageDisplayed();
+    
+    // 未读消息相关信号
+    void unreadCountChanged(uint64_t uid, int count);
+    void totalUnreadCountChanged(int totalCount);
+    void newMessageReceived(uint64_t fromUid, const QString &content);
 
 private slots:
     void onConversationSelected(QListWidgetItem *item);
 
 private:
     friend class Singleton<ChatUIManager>;
-    ChatUIManager(QObject *parent = nullptr);
-    
-    // 添加消息到浏览器
-    void addMessageToBrowser(const ChatMessage &message);
+
+    explicit ChatUIManager(QObject *parent = nullptr);
     
     // 滚动到底部
     void scrollToBottom();
@@ -94,10 +94,13 @@ private:
     static QString formatMessageTime(qint64 timestamp);
     
     QListWidget *m_conversationsList;
-    QTextBrowser *m_messageBrowser;
+    QListView *m_messageListView;
     QLabel *m_chatTitleLabel;
     
-    QMap<uint64_t, Conversation> m_conversations;
+    ChatMessageModel *m_chatModel;
+
+    QMap<uint64_t, Conversation> m_conversations;   // uid -> 会话项
+    QMap<uint64_t, QList<ChatMessage>> m_messageHistories;
     uint64_t m_currentChatUid;
     uint64_t m_currentUserId;
     QString m_currentUserName;

@@ -1,0 +1,18 @@
+server:
+  host: "0.0.0.0"
+  port: 50056
+
+rabbitmq:
+  url: "amqp://uchat:UChat_root@117.72.109.145:5672/"
+  exchange: "uchat_exchange"
+  exchange_type: "topic"
+  
+  # 队列配置
+  queues:
+    contact_request_notifications: "contact.request.notifications"
+    contact_accept_notifications: "contact.accept.notifications"
+    message_notifications: "message.notifications"
+
+logging:
+  level: "info"
+  file: "logs/mqgateway.log" 
