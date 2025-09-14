@@ -5,7 +5,13 @@ project(UserServer)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
+if(APPLE)
+    set(Triplet "x64-osx")
+elseif (LINUX)
+    set(Triplet "x64-linux")
+endif ()
+
+set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/${Triplet})
 
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
@@ -57,8 +63,10 @@ target_include_directories(proto_lib PUBLIC
         $<BUILD_INTERFACE:${GENERATED_DIR}>
 )
 
-add_executable(UserServer
-        main.cpp
+# 为 proto_lib 添加 fPIC 编译选项
+set_property(TARGET proto_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(UserServerLib
         src/MysqlMgr.cpp
         src/MysqlMgr.h
         src/util.h
@@ -82,7 +90,7 @@ add_executable(UserServer
         src/StatusGrpcClient.cpp
 )
 
-target_link_libraries(UserServer PUBLIC
+target_link_libraries(UserServerLib PUBLIC
         proto_lib
         gRPC::grpc++
         gRPC::grpc++_reflection
@@ -94,11 +102,13 @@ target_link_libraries(UserServer PUBLIC
         redis++::redis++_static
 )
 
-target_include_directories(UserServer PUBLIC
+target_include_directories(UserServerLib PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}
 )
 
+add_executable(UserServer main.cpp)
+target_link_libraries(UserServer PRIVATE UserServerLib)
 
 # 拷贝配置文件
 configure_file(

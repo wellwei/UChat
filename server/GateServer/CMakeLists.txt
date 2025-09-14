@@ -12,7 +12,6 @@ find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(redis++ CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(unofficial-mysql-connector-cpp CONFIG REQUIRED)
 find_package(jwt-cpp CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
@@ -56,6 +55,9 @@ target_link_libraries(proto_lib PUBLIC
 target_include_directories(proto_lib PUBLIC
         $<BUILD_INTERFACE:${GENERATED_DIR}>
 )
+
+# 为 proto_lib 添加 fPIC 编译选项
+set_property(TARGET proto_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(GateServerLib SHARED ${SOURCES}
         src/CServer.cpp
@@ -101,8 +103,6 @@ target_link_libraries(GateServerLib PUBLIC
         proto_lib
         redis++::redis++_static
         spdlog::spdlog
-        unofficial::libmysql::libmysql
-        unofficial::mysql-connector-cpp::connector-jdbc
         jwt-cpp::jwt-cpp
 )
 
