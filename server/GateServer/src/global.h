@@ -6,8 +6,6 @@
 #define GATESERVER_GLOBAL_H
 
 #include <nlohmann/json.hpp>
-#include <boost/beast.hpp>
-#include <boost/asio.hpp>
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -33,12 +31,6 @@ enum ErrorCode {
     USERNAME_OR_PASSWORD_ERROR = 1010,
     NETWORK_ERROR = 1011,
     TOKEN_INVALID = 1012,
-};
-
-enum RequestType {
-    GET = 1,
-    POST = 2,
-    PUT = 3,
 };
 
 // 获取当前主机名
@@ -74,6 +66,13 @@ inline std::string getCurrentDate() {
 // 获取当前时间点
 inline std::chrono::system_clock::time_point getCurrentTimePoint() {
     return std::chrono::system_clock::now();
+}
+
+// 去除字符串两边的空格
+inline std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(' ');
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, last - first + 1);
 }
 
 

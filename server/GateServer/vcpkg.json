@@ -15,13 +15,9 @@
   }, {
     "name" : "spdlog",
     "version>=" : "1.15.2"
-  }, {
-    "name" : "boost-asio"
-  }, {
-    "name" : "boost-beast"
-  }, {
-    "name" : "boost-filesystem"
-  }, {
+  },{
+    "name" : "boost-uuid"
+  },{
     "name" : "nlohmann-json",
     "version>=" : "3.12.0"
   }, {

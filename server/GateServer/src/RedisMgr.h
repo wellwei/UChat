@@ -41,6 +41,10 @@ public:
 
     std::optional<std::string> rpop(const std::string &key);
 
+    // Atomically deletes key only if its current value equals expected_value.
+    // Uses a Lua script to avoid TOCTOU races.
+    bool conditionalDel(const std::string &key, const std::string &expected_value);
+
 private:
     RedisMgr();
 

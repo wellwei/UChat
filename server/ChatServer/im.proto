@@ -1,0 +1,126 @@
+syntax = "proto3";
+package im;
+
+option cc_generic_services = false;
+
+// ========== Common structures ==========
+message Envelope {
+  string msg_id = 1;        // Server-generated, globally unique
+  string client_msg_id = 2; // Client-generated, for idempotency (UUID)
+  int64  from_uid = 3;
+  int64  to_uid = 4;
+  int64  group_id = 5;      // 0 = not a group chat
+  int64  ts_ms = 6;         // Server timestamp in milliseconds
+  bytes  payload = 7;
+  string trace_id = 8;      // Observability: spans the entire chain
+}
+
+enum AckType {
+  ACK_UNKNOWN = 0;
+  ACK_DELIVERED = 1;
+  ACK_READ = 2;
+}
+
+// ========== 1) Client <-> GateServer: bidirectional stream ==========
+service ChatTunnel {
+  rpc Connect(stream ClientFrame) returns (stream ServerFrame);
+}
+
+message ClientFrame {
+  oneof body {
+    LoginReq login = 1;
+    Heartbeat hb = 2;
+    SendReq send = 3;
+    AckReq ack = 4;
+    PullHistoryReq pull = 5;
+  }
+}
+
+message ServerFrame {
+  oneof body {
+    LoginResp login = 1;
+    Pong pong = 2;
+    PushMsg push = 3;
+    SendResp send = 4;
+    PullHistoryResp history = 5;
+    Kick kick = 6;
+    Error err = 7;
+  }
+}
+
+message LoginReq {
+  int64 uid = 1;
+  string token = 2;
+  string device_id = 3;
+}
+message LoginResp { bool ok = 1; string reason = 2; int64 session_ver = 3; }
+
+message Heartbeat { int64 ts_ms = 1; }
+message Pong { int64 ts_ms = 1; }
+
+message SendReq { Envelope env = 1; }
+message SendResp { bool ok = 1; string msg_id = 2; string reason = 3; }
+
+message AckReq { string msg_id = 1; AckType type = 2; int64 ts_ms = 3; }
+
+message PullHistoryReq { int64 peer_uid = 1; int64 limit = 2; string before_msg_id = 3; }
+message PullHistoryResp { repeated Envelope msgs = 1; }
+
+message PushMsg { Envelope env = 1; }
+
+message Kick { string reason = 1; }
+message Error { int32 code = 1; string message = 2; }
+
+// ========== 2) GateServer -> ChatServer: unary ==========
+service ChatApi {
+  rpc SendMessage(SendMessageReq) returns (SendMessageResp);
+  rpc Ack(AckUpReq) returns (AckUpResp);
+  rpc PullHistory(PullHistoryUpReq) returns (PullHistoryUpResp);
+}
+
+message SendMessageReq {
+  int64 from_uid = 1;
+  int64 to_uid = 2;
+  int64 group_id = 3;
+  string client_msg_id = 4;
+  bytes payload = 5;
+  string trace_id = 6;
+}
+message SendMessageResp {
+  bool ok = 1;
+  string msg_id = 2;
+  int64 ts_ms = 3;
+  string reason = 4;
+}
+
+message AckUpReq { int64 uid = 1; string msg_id = 2; AckType type = 3; int64 ts_ms = 4; }
+message AckUpResp { bool ok = 1; }
+
+message PullHistoryUpReq { int64 uid = 1; int64 peer_uid = 2; int64 limit = 3; string before_msg_id = 4; }
+message PullHistoryUpResp { repeated Envelope msgs = 1; }
+
+// ========== 3) ChatServer -> GateServer: unary ==========
+service DeliverApi {
+  rpc DeliverToUser(DeliverToUserReq) returns (DeliverToUserResp);
+  rpc DeliverBatch(DeliverBatchReq) returns (DeliverBatchResp);
+}
+
+message DeliverToUserReq {
+  int64 to_uid = 1;
+  Envelope env = 2;
+  int64 expected_session_ver = 3; // optional: 0 means no check
+}
+message DeliverToUserResp {
+  bool ok = 1;
+  bool online = 2;
+  string reason = 3;
+}
+
+message DeliverBatchReq {
+  repeated int64 to_uids = 1;
+  Envelope env = 2;
+}
+message DeliverBatchResp {
+  int32 delivered = 1;
+  int32 offline = 2;
+}

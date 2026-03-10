@@ -17,6 +17,8 @@ Status VerifyGrpcClient::getVerifyCode(const std::string &email) const {
     VerifyResponse reply;          // 创建响应对象
     ClientContext context;          // 创建上下文对象
 
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
     request.set_email(email);
     auto stub = stub_pool_->getStub(); // 从存根池获取存根
     Status status = stub->GetVerifyCode(&context, request, &reply); // 发送请求并接收响应

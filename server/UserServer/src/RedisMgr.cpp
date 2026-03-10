@@ -17,8 +17,7 @@ RedisMgr::RedisMgr() {
 
     std::string host = config_mgr["Redis"]["host"];
     long port = strtol(config_mgr["Redis"]["port"].c_str(), nullptr, 10);
-    std::string password = config_mgr["Redis"]["password"];
-    _redis_conn_pool = std::make_unique<RedisConnPool>(host, port, password, _db_index, _poll_size);
+    _redis_conn_pool = std::make_unique<RedisConnPool>(host, port, _db_index, _poll_size);
 }
 
 RedisMgr::~RedisMgr() {

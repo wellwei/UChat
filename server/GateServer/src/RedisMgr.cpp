@@ -10,8 +10,7 @@ RedisMgr::RedisMgr() {
     auto config_mgr = *ConfigMgr::getInstance();
     std::string host = config_mgr["Redis"]["host"];
     int port = strtol(config_mgr["Redis"]["port"].c_str(), nullptr, 10);
-    std::string password = config_mgr["Redis"]["password"];
-    _redis_conn_pool = std::make_unique<RedisConnPool>(8, host, port, password);
+    _redis_conn_pool = std::make_unique<RedisConnPool>(8, host, port);
 }
 
 RedisMgr::~RedisMgr() {
@@ -283,5 +282,32 @@ std::optional<std::string> RedisMgr::rpop(const std::string &key) {
         LOG_ERROR("Redis rpop error: {}", e.what());
         _redis_conn_pool->returnConnection(std::move(conn));
         return std::nullopt;
+    }
+}
+
+// 原子比较并删除：仅当键的当前值等于 expected_value 时才删除
+bool RedisMgr::conditionalDel(const std::string &key, const std::string &expected_value) {
+    auto conn = _redis_conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("Failed to get Redis connection");
+        return false;
+    }
+    try {
+        static const std::string script =
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+            "  return redis.call('del', KEYS[1]) "
+            "else "
+            "  return 0 "
+            "end";
+        std::vector<std::string> keys = {key};
+        std::vector<std::string> args = {expected_value};
+        auto result = conn->eval<long long>(script, keys.begin(), keys.end(), args.begin(), args.end());
+        _redis_conn_pool->returnConnection(std::move(conn));
+        return result > 0;
+    }
+    catch (const sw::redis::Error &e) {
+        LOG_ERROR("Redis conditionalDel error: {}", e.what());
+        _redis_conn_pool->returnConnection(std::move(conn));
+        return false;
     }
 }

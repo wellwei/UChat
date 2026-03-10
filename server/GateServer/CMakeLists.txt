@@ -4,17 +4,17 @@ set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
 
 project(GateServer)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(Boost CONFIG REQUIRED COMPONENTS beast asio filesystem)
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(redis++ CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(jwt-cpp CONFIG REQUIRED)
 
-set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
+set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/protoc_generated")
+file(MAKE_DIRECTORY ${GENERATED_DIR})
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.proto")
 
 foreach (PROTO_FILE ${PROTO_FILES})
@@ -60,14 +60,7 @@ target_include_directories(proto_lib PUBLIC
 set_property(TARGET proto_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(GateServerLib SHARED ${SOURCES}
-        src/CServer.cpp
-        src/CServer.h
-        src/HttpConnection.cpp
-        src/HttpConnection.h
         src/Singleton.h
-        src/LogicSystem.cpp
-        src/LogicSystem.h
-        src/util.h
         src/global.h
         src/VerifyGrpcClient.cpp
         src/VerifyGrpcClient.h
@@ -75,21 +68,27 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/ConfigMgr.cpp
         src/ConfigMgr.h
         src/global.cpp
-        src/ServicePool.cpp
-        src/ServicePool.h
         src/GrpcStubPool.h
         src/RedisConnPool.cpp
         src/RedisConnPool.h
         src/RedisMgr.cpp
         src/RedisMgr.h
-        src/RequestHandlers.h
         src/Logger.cpp
         src/Logger.h
-        src/StatusGrpcClient.cpp
-        src/StatusGrpcClient.h
         src/UserServiceClient.cpp
         src/UserServiceClient.h
-        src/RequestHandlers.cpp
+        src/SessionRegistry.h
+        src/SessionRegistry.cpp
+        src/ChatSession.h
+        src/ChatSession.cpp
+        src/ChatTunnelService.h
+        src/ChatTunnelService.cpp
+        src/DeliverApiService.h
+        src/DeliverApiService.cpp
+        src/GatewayServer.h
+        src/GatewayServer.cpp
+        src/ChatApiClient.h
+        src/ChatApiClient.cpp
 )
 
 target_include_directories(GateServerLib PUBLIC
@@ -99,7 +98,6 @@ target_include_directories(GateServerLib PUBLIC
 
 target_link_libraries(GateServerLib PUBLIC
         nlohmann_json::nlohmann_json
-        Boost::asio Boost::beast Boost::filesystem
         proto_lib
         redis++::redis++_static
         spdlog::spdlog

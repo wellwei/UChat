@@ -1,23 +1,53 @@
 
 #include "global.h"
-#include "CServer.h"
-#include "ServicePool.h"
 #include "ConfigMgr.h"
 #include "Logger.h"
 #include "RedisMgr.h"
-#include "LogicSystem.h"
+#include "ChatApiClient.h"
+#include "UserServiceClient.h"
+#include "VerifyGrpcClient.h"
+#include "GatewayServer.h"
+#include <csignal>
+#include <memory>
+#include <thread>
+
+static std::shared_ptr<GatewayServer> g_gateway;
+std::thread sig_thread;
+
+static void StartSignalWaiter() {
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGTERM);
+    // 必须：在创建其它线程/启动 gRPC 前屏蔽，让信号不进入异步 handler
+    pthread_sigmask(SIG_BLOCK, &set, nullptr);
+    sig_thread = std::thread([set]() mutable {
+        int sig = 0;
+        sigwait(&set, &sig);
+        if (g_gateway) g_gateway->Stop();
+    });
+}
 
 int main() {
-    // 设置日志目录和文件名
+    // 设置信号处理器
+    StartSignalWaiter();
+
     Logger::init("logs", "gateserver");
-    // 初始化服务
+
     try {
         Singleton<ConfigMgr>::getInstance();
-        Singleton<ServicePool>::getInstance();
-        Singleton<LogicSystem>::getInstance();
         Singleton<RedisMgr>::getInstance();
-    }
-    catch (...) {
+        Singleton<ChatApiClient>::getInstance();
+        Singleton<UserServiceClient>::getInstance();
+
+        std::string verify_val = (*ConfigMgr::getInstance())["VerifyServer"].get("enabled", "true");
+        bool verify_enabled = (verify_val != "false" && verify_val != "0");
+        if (verify_enabled) {
+            Singleton<VerifyGrpcClient>::getInstance();
+        } else {
+            LOG_INFO("VerifyServer disabled by config, skipping initialization");
+        }
+    } catch (...) {
         LOG_ERROR("服务初始化失败");
         return 1;
     }
@@ -25,37 +55,21 @@ int main() {
     try {
         LOG_INFO("GateServer 启动中...");
 
-        auto g_config_mgr = *Singleton<ConfigMgr>::getInstance();
-        unsigned short port = atoi(g_config_mgr["GateServer"]["port"].c_str()) ?
-                              atoi(g_config_mgr["GateServer"]["port"].c_str()) : 8080; // 获取端口号，默认为 8080
+        g_gateway = std::make_shared<GatewayServer>();
+        g_gateway->Start();
 
-        auto accept_ioc = boost::asio::io_context();
-
-        // 设置信号处理器，捕获 SIGINT 和 SIGTERM 信号
-        boost::asio::signal_set signals(accept_ioc, SIGINT, SIGTERM);
-        // 如果捕获到信号，则停止 io_context
-        signals.async_wait([&accept_ioc](const boost::system::error_code &ec, int signal_number) {
-            if (!ec) {
-                LOG_INFO("收到信号 {}，停止服务器", signal_number);
-                ServicePool::getInstance()->stop(); // 停止 ServicePool
-                accept_ioc.stop(); // 停止 io_context
-            }
-        });
-
-        std::make_shared<CServer>(accept_ioc, port)->start(); // 创建并启动服务器
-        LOG_INFO("GateServer 启动成功，监听端口 {}", port);
-        accept_ioc.run();
-    }
-    catch (const std::exception &e) {
+        LOG_INFO("GateServer 启动成功，gRPC 网关监听中");
+        g_gateway->Wait();  // 阻塞，直到 Stop() 被调用
+    } catch (const std::exception& e) {
         LOG_ERROR("GateServer 启动失败：{}", e.what());
         return 1;
-    }
-    catch (...) {
+    } catch (...) {
         LOG_ERROR("未知错误");
         return 1;
     }
 
     LOG_INFO("GateServer 关闭");
-
+    // 保证Gateway在日志系统之前退出
+    if (sig_thread.joinable()) sig_thread.join();
     return 0;
 }

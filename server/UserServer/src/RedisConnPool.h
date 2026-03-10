@@ -6,7 +6,7 @@
 
 class RedisConnPool {
 public:
-    RedisConnPool(std::string host, int port, const std::string &password, int db_index, size_t pool_size);
+    RedisConnPool(std::string host, int port, int db_index, size_t pool_size);
 
     ~RedisConnPool();
 

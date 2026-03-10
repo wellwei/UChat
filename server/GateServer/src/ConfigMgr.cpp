@@ -1,53 +1,47 @@
-//
-// Created by wellwei on 2025/4/4.
-//
-
 #include "ConfigMgr.h"
-#include "global.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
+#include <fstream>
 #include "Logger.h"
+#include "global.h"
 
 ConfigMgr::ConfigMgr() {
-    // 获取配置文件路径
-    boost::filesystem::path config_path = boost::filesystem::current_path() / "config.ini";
-    if (!boost::filesystem::exists(config_path)) {
-        LOG_CRITICAL("Config file not found: {}", config_path.string());
-        exit(1);
+    std::filesystem::path config_path = std::filesystem::current_path() / "config.ini";
+    if (!std::filesystem::exists(config_path)) {
+        LOG_ERROR("配置文件不存在: {}", config_path.string());
+        throw std::runtime_error("配置文件不存在");
     }
 
-    // 读取配置文件
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_ini(config_path.string(), pt);
+    std::ifstream config_file(config_path.string());
+    if (!config_file.is_open()) {
+        LOG_ERROR("无法打开配置文件: {}", config_path.string());
+        throw std::runtime_error("无法打开配置文件");
+    }
 
-    // 遍历配置文件的每个 section
-    for (const auto &section: pt) {
-        const std::string &section_name = section.first;
-        const boost::property_tree::ptree &section_tree = section.second;
-
-        // 遍历 section 中的每个 key-value 对
-        std::unordered_map<std::string, std::string> section_config;
-        for (const auto &key_value: section_tree) {
-            const std::string &key = key_value.first;
-            const std::string &value = key_value.second.get_value<std::string>();
-            section_config[key] = value;
+    // 解析配置文件，注意等号两边有空格
+    std::string line;
+    std::string section;
+    while (std::getline(config_file, line)) {
+        if (line.empty() || line[0] == ';') {
+            continue;
         }
-
-        SectionInfo section_info;
-        section_info.section_datas_ = section_config;
-        config_map_[section_name] = section_info;
-    }
-
-    // 打印配置文件内容
-    /*
-    for (const auto &section: config_map_) {
-        const std::string &section_name = section.first;
-        const SectionInfo &section_info = section.second;
-        std::cout << "[" << section_name << "]" << std::endl;
-        for (const auto &key_value: section_info.section_datas_) {
-            std::cout << key_value.first << " = " << key_value.second << std::endl;
+        if (line[0] == '[') {
+            size_t end = line.find(']');
+            if (end != std::string::npos) {
+                section = line.substr(1, end - 1);
+                config_map_[section] = SectionInfo();
+            }   
+        } else {
+            // 解析等号两边有空格的配置项
+            size_t pos = line.find('=');
+            if (pos != std::string::npos) {
+                std::string key = line.substr(0, pos);
+                std::string value = line.substr(pos + 1);
+                // 去除等号两边的空格
+                key = trim(key);
+                value = trim(value);
+                config_map_[section][key] = value;
+            }
         }
     }
-     */
+    // printConfig();
 }

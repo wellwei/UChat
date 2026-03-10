@@ -6,7 +6,7 @@
 #include "Logger.h"
 #include <utility>
 
-RedisConnPool::RedisConnPool(size_t pool_size, std::string host, int port, const std::string &password)
+RedisConnPool::RedisConnPool(size_t pool_size, std::string host, int port)
         : _pool_size(pool_size),
           _host(std::move(host)),
           _port(port),
@@ -14,7 +14,6 @@ RedisConnPool::RedisConnPool(size_t pool_size, std::string host, int port, const
     try {
         for (size_t i = 0; i < _pool_size; ++i) {
             auto conn = std::make_shared<sw::redis::Redis>("tcp://" + _host + ":" + std::to_string(_port));
-            conn->auth(password);
             _connections.push(std::move(conn));
         }
         LOG_INFO("Redis connection pool created with size: {}", _pool_size);

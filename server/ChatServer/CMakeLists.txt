@@ -5,13 +5,16 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_SOURCE_DIR}/vcpkg_installed/x
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(spdlog CONFIG REQUIRED) 
+find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(jwt-cpp CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS asio system uuid)
 find_package(gRPC CONFIG REQUIRED)
+find_package(Protobuf CONFIG REQUIRED)
+find_package(redis++ CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/proto_generated")
+file(MAKE_DIRECTORY ${GENERATED_DIR})
 file(GLOB PROTO_FILES "${CMAKE_SOURCE_DIR}/*.proto")
 
 foreach (PROTO_FILE ${PROTO_FILES})
@@ -64,16 +67,16 @@ add_executable(ChatServer
         src/GrpcStubPool.h
         src/StatusGrpcClient.h
         src/StatusGrpcClient.cpp
-        src/TcpConnection.h
-        src/TcpConnection.cpp
-        src/ConnectionManager.h
-        src/ConnectionManager.cpp
-        src/MessageHandler.h
-        src/MessageHandler.cpp
         src/MQGatewayClient.h
         src/MQGatewayClient.cpp
-        src/ChatServer.h
-        src/ChatServer.cpp
+        src/ChatApiService.h
+        src/ChatApiService.cpp
+        src/PresenceClient.h
+        src/PresenceClient.cpp
+        src/DeliverApiClient.h
+        src/DeliverApiClient.cpp
+        src/NewChatServer.h
+        src/NewChatServer.cpp
         main.cpp
 )
 
@@ -85,6 +88,7 @@ target_link_libraries(ChatServer PUBLIC
         Boost::asio
         Boost::system
         Boost::uuid
+        redis++::redis++_static
 )
 
 target_include_directories(ChatServer PUBLIC

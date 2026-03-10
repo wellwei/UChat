@@ -29,11 +29,19 @@ struct SectionInfo {
     std::unordered_map<std::string, std::string> section_datas_;
 
     std::string operator[](const std::string &key) {
-        auto it = section_datas_.find(key);
+        const auto it = section_datas_.find(key);
         if (it != section_datas_.end()) {
             return it->second;
         }
         return "";
+    }
+
+    std::string get(const std::string &key, const std::string& default_value) {
+        const auto it = section_datas_.find(key);
+        if (it == section_datas_.end() || it->second.empty()) {
+            return default_value;
+        }
+        return it->second;
     }
 };
 

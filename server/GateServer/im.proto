@@ -1,0 +1,200 @@
+syntax = "proto3";
+package im;
+
+option cc_generic_services = false;
+
+// ========== Common structures ==========
+message Envelope {
+  string msg_id = 1;        // 服务端生成，全局唯一
+  string client_msg_id = 2; // 客户端生成，uuid 幂等性
+  int64  from_uid = 3;
+  int64  to_uid = 4;
+  int64  group_id = 5;      // 0 非群聊
+  int64  ts_ms = 6;         // 服务器时间戳，毫秒
+  bytes  payload = 7;
+  string trace_id = 8;      // 全局追踪观测
+}
+
+enum AckType {
+  ACK_UNKNOWN = 0;
+  ACK_DELIVERED = 1;        // 已推送
+  ACK_READ = 2;             // 已读
+}
+
+// ========== 1) Client <-> GateServer: bidirectional stream ==========
+service ChatTunnel {
+  rpc Connect(stream ClientFrame) returns (stream ServerFrame);
+}
+
+message ClientFrame {
+  oneof body {
+    LoginReq         login          = 1;
+    Heartbeat        hb             = 2;
+    SendReq          send           = 3;
+    AckReq           ack            = 4;
+    PullHistoryReq   pull           = 5;
+    GetVerifyCodeReq get_verify_code = 6;
+    RegisterReq      register_req   = 7;
+    AuthLoginReq     auth_login     = 8;
+    ResetPasswordReq reset_password = 9;
+  }
+}
+
+message ServerFrame {
+  oneof body {
+    LoginResp        login          = 1;
+    Pong             pong           = 2;
+    PushMsg          push           = 3;
+    SendResp         send           = 4;
+    PullHistoryResp  history        = 5;
+    Kick             kick           = 6;
+    Error            err            = 7;
+    GetVerifyCodeResp get_verify_code = 8;
+    RegisterResp     register_resp  = 9;
+    AuthLoginResp    auth_login     = 10;
+    ResetPasswordResp reset_password = 11;
+  }
+}
+
+message LoginReq {
+  int64 uid = 1;
+  string token = 2;
+  string device_id = 3;
+}
+message LoginResp {
+  bool ok = 1;
+  string reason = 2;
+  int64 session_ver = 3;
+}
+
+message Heartbeat {
+  int64 ts_ms = 1;
+}
+message Pong {
+  int64 ts_ms = 1;
+}
+
+message SendReq {
+  Envelope env = 1;
+}
+message SendResp {
+  bool ok = 1;
+  string msg_id = 2;
+  string reason = 3;
+}
+
+message AckReq {
+  string msg_id = 1;
+  AckType type = 2;
+  int64 ts_ms = 3;
+}
+
+message PullHistoryReq {
+  int64 peer_uid = 1;
+  int64 limit = 2;
+  string before_msg_id = 3;
+}
+message PullHistoryResp {
+  repeated Envelope msgs = 1;
+}
+
+message PushMsg {
+  Envelope env = 1;
+}
+
+message Kick {
+  string reason = 1;
+}
+message Error {
+  int32 code = 1;
+  string message = 2;
+}
+
+// ========== 2) GateServer -> ChatServer: unary ==========
+service ChatApi {
+  rpc SendMessage(SendMessageReq) returns (SendMessageResp);
+  rpc Ack(AckUpReq) returns (AckUpResp);
+  rpc PullHistory(PullHistoryUpReq) returns (PullHistoryUpResp);
+}
+
+message SendMessageReq {
+  int64 from_uid = 1;
+  int64 to_uid = 2;
+  int64 group_id = 3;
+  string client_msg_id = 4;
+  bytes payload = 5;
+  string trace_id = 6;
+}
+message SendMessageResp {
+  bool ok = 1;
+  string msg_id = 2;
+  int64 ts_ms = 3;
+  string reason = 4;
+}
+
+message AckUpReq {
+  int64 uid = 1;
+  string msg_id = 2;
+  AckType type = 3;
+  int64 ts_ms = 4;
+}
+message AckUpResp {
+  bool ok = 1;
+}
+
+message PullHistoryUpReq {
+  int64 uid = 1;
+  int64 peer_uid = 2;
+  int64 limit = 3;
+  string before_msg_id = 4;
+}
+message PullHistoryUpResp {
+  repeated Envelope msgs = 1;
+}
+
+// ========== 3) ChatServer -> GateServer: unary ==========
+service DeliverApi {
+  rpc DeliverToUser(DeliverToUserReq) returns (DeliverToUserResp);
+  rpc DeliverBatch(DeliverBatchReq) returns (DeliverBatchResp);
+}
+
+message DeliverToUserReq {
+  int64 to_uid = 1;
+  Envelope env = 2;
+  int64 expected_session_ver = 3; // optional: 0 means no check
+}
+message DeliverToUserResp {
+  bool ok = 1;
+  bool online = 2;
+  string reason = 3;
+}
+
+message DeliverBatchReq {
+  repeated int64 to_uids = 1;
+  Envelope env = 2;
+}
+message DeliverBatchResp {
+  int32 delivered = 1;
+  int32 offline = 2;
+}
+
+// ========== 4) Auth operations (pre-LoginReq, no authed_ required) ==========
+
+message GetVerifyCodeReq  { string email = 1; }
+message GetVerifyCodeResp { bool ok = 1; string message = 2; string email = 3; }
+
+message RegisterReq {
+  string email       = 1;
+  string verify_code = 2;
+  string username    = 3;
+  string password    = 4;
+}
+message RegisterResp { bool ok = 1; string message = 2; int64 uid = 3; }
+
+// AuthLoginReq 替代 HTTP /login：handle+password → uid+JWT token
+// 客户端拿到 token 后用 LoginReq 建立 chat session（现有流程不变）
+message AuthLoginReq  { string handle = 1; string password = 2; }
+message AuthLoginResp { bool ok = 1; string message = 2; int64 uid = 3; string token = 4; }
+
+message ResetPasswordReq  { string email = 1; string verify_code = 2; string new_password = 3; }
+message ResetPasswordResp { bool ok = 1; string message = 2; }
