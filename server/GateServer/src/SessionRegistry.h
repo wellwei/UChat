@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <cstdint>
+#include <functional>
 
 class ChatSession;
 
@@ -22,6 +23,8 @@ public:
 
     // Find the live session for uid. Returns nullptr if not present.
     std::shared_ptr<ChatSession> Find(int64_t uid);
+
+    std::vector<std::pair<int64_t, int64_t>> GetAllSessionsPair();
 
 private:
     std::shared_mutex mu_;

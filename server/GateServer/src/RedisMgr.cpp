@@ -311,3 +311,25 @@ bool RedisMgr::conditionalDel(const std::string &key, const std::string &expecte
         return false;
     }
 }
+
+bool RedisMgr::refreshOnlineSessionsPresence(std::vector<std::pair<int64_t, int64_t>> &online_sessions, std::string &gateway_id) {
+
+    auto conn = _redis_conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("Failed to get Redis connection");
+        return false;
+    }
+
+    try {
+        auto pipline = conn->pipeline();
+        for (auto [uid, session_ver] : online_sessions) {
+            pipline.setex("online:" + std::to_string(uid), 15, gateway_id + ":" + std::to_string(session_ver));
+        }
+        pipline.exec();
+        _redis_conn_pool->returnConnection(std::move(conn));
+        return true;
+    } catch (const sw::redis::Error &e) {
+        _redis_conn_pool->returnConnection(std::move(conn));
+        return false;
+    }
+}

@@ -174,6 +174,132 @@ grpc::Status UserServer::SearchUser(grpc::ServerContext* context, const SearchUs
     return grpc::Status::OK;
 }
 
+// ========== M3: 联系人操作 ==========
+
+grpc::Status UserServer::SendContactRequest(grpc::ServerContext* context,
+                                            const SendContactRequestReq* request,
+                                            SendContactRequestResp* response) {
+    LOG_INFO("Received SendContactRequest from_uid={} to_uid={}", request->from_uid(), request->to_uid());
+
+    if (request->from_uid() == 0 || request->to_uid() == 0) {
+        response->set_success(false);
+        response->set_error_msg("from_uid 和 to_uid 不能为 0");
+        return grpc::Status::OK;
+    }
+    if (request->from_uid() == request->to_uid()) {
+        response->set_success(false);
+        response->set_error_msg("不能添加自己为联系人");
+        return grpc::Status::OK;
+    }
+
+    auto mysql_mgr = MysqlMgr::getInstance();
+    uint64_t request_id = 0;
+    if (mysql_mgr->sendContactRequest(request->from_uid(), request->to_uid(),
+                                      request->note(), request_id)) {
+        response->set_success(true);
+        response->set_request_id(request_id);
+    } else {
+        response->set_success(false);
+        response->set_error_msg("发送好友申请失败（已是好友或其他错误）");
+    }
+
+    LOG_INFO("Response SendContactRequest from_uid={} to_uid={} success={}",
+             request->from_uid(), request->to_uid(), response->success());
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::HandleContactRequest(grpc::ServerContext* context,
+                                              const HandleContactRequestReq* request,
+                                              HandleContactRequestResp* response) {
+    LOG_INFO("Received HandleContactRequest request_id={} handler_uid={} accept={}",
+             request->request_id(), request->handler_uid(), request->accept());
+
+    if (request->request_id() == 0 || request->handler_uid() == 0) {
+        response->set_success(false);
+        response->set_error_msg("参数无效");
+        return grpc::Status::OK;
+    }
+
+    auto mysql_mgr = MysqlMgr::getInstance();
+    uint64_t from_uid = 0;
+    if (mysql_mgr->handleContactRequest(request->request_id(), request->handler_uid(),
+                                        request->accept(), from_uid)) {
+        response->set_success(true);
+        response->set_from_uid(from_uid);
+    } else {
+        response->set_success(false);
+        response->set_error_msg("处理好友申请失败（请求不存在或无权限）");
+    }
+
+    LOG_INFO("Response HandleContactRequest request_id={} success={} from_uid={}",
+             request->request_id(), response->success(), response->from_uid());
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::GetContacts(grpc::ServerContext* context,
+                                     const GetContactsReq* request,
+                                     GetContactsResp* response) {
+    LOG_INFO("Received GetContacts uid={}", request->uid());
+
+    if (request->uid() == 0) {
+        response->set_success(false);
+        response->set_error_msg("uid 不能为 0");
+        return grpc::Status::OK;
+    }
+
+    auto mysql_mgr = MysqlMgr::getInstance();
+    std::vector<ContactEntry> contacts;
+    if (mysql_mgr->getContacts(request->uid(), contacts)) {
+        response->set_success(true);
+        for (const auto& entry : contacts) {
+            auto* e = response->add_contacts();
+            e->set_uid(entry.uid());
+            e->set_username(entry.username());
+            e->set_nickname(entry.nickname());
+            e->set_avatar_url(entry.avatar_url());
+        }
+    } else {
+        response->set_success(false);
+        response->set_error_msg("获取联系人列表失败");
+    }
+
+    LOG_INFO("Response GetContacts uid={} count={}", request->uid(), response->contacts_size());
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::GetContactRequests(grpc::ServerContext* context,
+                                            const GetContactRequestsReq* request,
+                                            GetContactRequestsResp* response) {
+    LOG_INFO("Received GetContactRequests uid={}", request->uid());
+
+    if (request->uid() == 0) {
+        response->set_success(false);
+        response->set_error_msg("uid 不能为 0");
+        return grpc::Status::OK;
+    }
+
+    auto mysql_mgr = MysqlMgr::getInstance();
+    std::vector<ContactRequest> contact_requests;
+    if (mysql_mgr->getContactRequests(request->uid(), contact_requests)) {
+        response->set_success(true);
+        for (const auto& req : contact_requests) {
+            auto* r = response->add_requests();
+            r->set_request_id(req.request_id());
+            r->set_from_uid(req.from_uid());
+            r->set_from_username(req.from_username());
+            r->set_from_avatar(req.from_avatar());
+            r->set_note(req.note());
+            r->set_ts_ms(req.ts_ms());
+        }
+    } else {
+        response->set_success(false);
+        response->set_error_msg("获取好友申请列表失败");
+    }
+
+    LOG_INFO("Response GetContactRequests uid={} count={}", request->uid(), response->requests_size());
+    return grpc::Status::OK;
+}
+
 void UserServer::start() {
     auto config = *ConfigMgr::getInstance();
     std::string server_address = config["UserServer"]["host"] + ":" + config["UserServer"]["port"];

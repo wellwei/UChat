@@ -5,7 +5,6 @@
 #include <string>
 #include "im.grpc.pb.h"
 #include "ChatApiService.h"
-#include "PresenceClient.h"
 #include "DeliverApiClient.h"
 
 // Replacement ChatServer entry point.
@@ -25,7 +24,6 @@ private:
     std::string host_;
     std::string grpc_port_;
 
-    std::shared_ptr<PresenceClient> presence_client_;
     std::shared_ptr<DeliverApiClient> deliver_client_;
     std::unique_ptr<ChatApiService> chat_api_service_;
 

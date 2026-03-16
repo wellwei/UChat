@@ -11,13 +11,10 @@
 #include <nlohmann/json.hpp>
 #include <chrono>
 
-static bool IsVerifyEnabled() {
-    std::string val = (*ConfigMgr::getInstance())["VerifyServer"].get("enabled", "true");
-    return val != "false" && val != "0";
-}
+#include "TimerWheel.h"
 
-ChatSession::ChatSession(SessionRegistry* registry, const std::string& gateway_id, int online_ttl_seconds)
-    : registry_(registry), gateway_id_(gateway_id), online_ttl_seconds_(online_ttl_seconds) {
+ChatSession::ChatSession(SessionRegistry* registry, const std::string& gateway_id)
+    : registry_(registry), gateway_id_(gateway_id) {
     StartRead(&in_frame_);
 }
 
@@ -34,6 +31,10 @@ void ChatSession::OnReadDone(bool ok) {
         return;
     }
 
+    UpdateActiveTime();
+
+    // ChatTunnel 只处理核心数据流操作
+    // 其他控制操作已迁移到 ChatControlApi (unary RPC)
     switch (in_frame_.body_case()) {
         case im::ClientFrame::kLogin:
             HandleLogin(in_frame_.login());
@@ -47,23 +48,8 @@ void ChatSession::OnReadDone(bool ok) {
         case im::ClientFrame::kAck:
             HandleAck(in_frame_.ack());
             break;
-        case im::ClientFrame::kPull:
-            HandlePull(in_frame_.pull());
-            break;
-        case im::ClientFrame::kGetVerifyCode:
-            HandleGetVerifyCode(in_frame_.get_verify_code());
-            break;
-        case im::ClientFrame::kRegisterReq:
-            HandleRegister(in_frame_.register_req());
-            break;
-        case im::ClientFrame::kAuthLogin:
-            HandleAuthLogin(in_frame_.auth_login());
-            break;
-        case im::ClientFrame::kResetPassword:
-            HandleResetPassword(in_frame_.reset_password());
-            break;
         default:
-            LOG_WARN("ChatSession: unknown frame type from uid={}", uid_.load());
+            LOG_WARN("ChatSession: unknown or deprecated frame type from uid={}", uid_.load());
             break;
     }
 
@@ -90,6 +76,16 @@ void ChatSession::OnDone() {
 
     if (authed_) {
         registry_->Unbind(uid_, session_ver_.load());
+    }
+
+    // Log unacknowledged messages for monitoring/debugging
+    // Note: These messages are still in Redis (offline queue), so client will pull them later
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        if (!inflight_.empty()) {
+            LOG_INFO("ChatSession::OnDone uid={}, session ended with {} unacknowledged messages (will be pulled by client later)",
+                     uid_.load(), inflight_.size());
+        }
     }
 
     LOG_INFO("ChatSession::OnDone uid={}", uid_.load());
@@ -180,29 +176,25 @@ void ChatSession::HandleLogin(const im::LoginReq& req) {
         std::chrono::system_clock::now().time_since_epoch()).count(), std::memory_order_release);
     authed_ = true;
 
-    // Write presence to Redis
-    std::string key = "online:" + std::to_string(uid_);
-    std::string value = gateway_id_ + ":" + std::to_string(session_ver_);
-    RedisMgr::getInstance()->set(key, value, online_ttl_seconds_);
-
     // Register in session registry
     registry_->Bind(uid_, shared_from_this());
 
-    LOG_INFO("ChatSession: uid={} logged in, session_ver={}", uid_.load(), session_ver_.load());
+    std::string key = "online:" + std::to_string(uid_);
+    std::string expected = gateway_id_ + ":" + std::to_string(session_ver_);
+    RedisMgr::getInstance()->set(key, expected, online_ttl_seconds_);
+
+    StartHeartbeatCheck();
 
     im::ServerFrame resp;
     auto* lr = resp.mutable_login();
     lr->set_ok(true);
     lr->set_session_ver(session_ver_);
     Enqueue(std::move(resp));
+
+    LOG_INFO("ChatSession: uid={} logged in, session_ver={}", uid_.load(), session_ver_.load());
 }
 
 void ChatSession::HandleHeartbeat(const im::Heartbeat& req) {
-    if (authed_) {
-        std::string key = "online:" + std::to_string(uid_);
-        RedisMgr::getInstance()->expire(key, online_ttl_seconds_);
-    }
-
     int64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -242,7 +234,16 @@ void ChatSession::HandleSend(const im::SendReq& req) {
 
 void ChatSession::HandleAck(const im::AckReq& req) {
     if (!authed_) return;
-    // Forward ACK to ChatServer (best-effort, fire and forget for M4)
+
+    // Handle network-level ACK (ACK_RECEIVED): remove from inflight map
+    // This indicates the client has received the message at network layer
+    if (req.type() == im::ACK_RECEIVED) {
+        AckInflight(req.msg_id());
+        LOG_DEBUG("ChatSession::HandleAck: received network-level ACK for msg_id={}", req.msg_id());
+    }
+
+    // Forward all ACKs to ChatServer for potential business logic processing
+    // (e.g., DELIVERED/READ state tracking in the future)
     im::AckUpReq ack_req;
     ack_req.set_uid(uid_);
     ack_req.set_msg_id(req.msg_id());
@@ -251,173 +252,105 @@ void ChatSession::HandleAck(const im::AckReq& req) {
     ChatApiClient::getInstance()->Ack(ack_req);
 }
 
-void ChatSession::HandlePull(const im::PullHistoryReq& req) {
-    if (!authed_) return;
-    // M5: will implement full history. Return empty for now.
-    im::ServerFrame frame;
-    frame.mutable_history(); // empty PullHistoryResp
-    Enqueue(std::move(frame));
+// Note: All control operation handlers have been moved to ChatControlApiService (unary RPC)
+// The following handlers are no longer in ChatSession:
+// - HandleGetVerifyCode -> ChatControlApi.GetVerifyCode
+// - HandleRegister -> ChatControlApi.Register  
+// - HandleAuthLogin -> ChatControlApi.AuthLogin
+// - HandleResetPassword -> ChatControlApi.ResetPassword
+// - HandleGetUserProfile -> ChatControlApi.GetUserProfile
+// - HandleUpdateUserProfile -> ChatControlApi.UpdateUserProfile
+// - HandleSearchUser -> ChatControlApi.SearchUser
+// - HandleGetContacts -> ChatControlApi.GetContacts
+// - HandleGetContactRequests -> ChatControlApi.GetContactRequests
+// - HandleSendContactReq -> ChatControlApi.SendContactRequest
+// - HandleHandleContactReq -> ChatControlApi.HandleContactRequest
+// - HandleSync -> ChatControlApi.Sync
+
+// ==================== Inflight Management ====================
+
+void ChatSession::TrackInflight(const im::Envelope& env) {
+    if (finishing_.load()) return;
+
+    InflightEntry entry;
+    entry.env = env;
+    entry.push_time = std::chrono::steady_clock::now();
+
+    std::string msg_id = env.msg_id();  // 先保存msg_id，避免entry被move后使用
+
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        inflight_[msg_id] = std::move(entry);
+    }
+
+    std::weak_ptr<ChatSession> weak_self = shared_from_this();
+    TimerWheel::getInstance()->AddTask(5000, [weak_self, msg_id]() {
+        if (auto self = weak_self.lock()) {
+            std::lock_guard<std::mutex> lock(self->mu_);
+            if (self->inflight_.erase(msg_id) > 0) {
+                LOG_DEBUG("ChatSession: auto-cleanup inflight msg_id={}", msg_id);
+            }
+        }
+    });
+
+    LOG_DEBUG("ChatSession::TrackInflight: uid={}, msg_id={}, inflight_size={}",
+              uid_.load(), msg_id, inflight_.size());
 }
 
-void ChatSession::HandleGetVerifyCode(const im::GetVerifyCodeReq& req) {
-    const std::string& email = req.email();
-    if (email.empty()) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_get_verify_code();
-        r->set_ok(false);
-        r->set_message("Email is required");
-        Enqueue(std::move(frame));
-        return;
-    }
+void ChatSession::AckInflight(const std::string& msg_id) {
+    std::lock_guard<std::mutex> lock(mu_);
 
-    if (!IsVerifyEnabled()) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_get_verify_code();
-        r->set_ok(true);
-        r->set_email(email);
-        r->set_message("Verification service disabled");
-        Enqueue(std::move(frame));
-        return;
-    }
+    auto it = inflight_.find(msg_id);
+    if (it != inflight_.end()) {
+        // Calculate latency for diagnostics
+        auto now = std::chrono::steady_clock::now();
+        auto latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - it->second.push_time).count();
 
-    auto redis = RedisMgr::getInstance();
-    std::string throttle_key = "throttle_verify_" + email;
-    if (redis->exists(throttle_key)) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_get_verify_code();
-        r->set_ok(false);
-        r->set_message("Too many requests. Please try again later.");
-        Enqueue(std::move(frame));
-        return;
-    }
+        inflight_.erase(it);
 
-    grpc::Status status = VerifyGrpcClient::getInstance()->getVerifyCode(email);
-    im::ServerFrame frame;
-    auto* r = frame.mutable_get_verify_code();
-    if (!status.ok()) {
-        r->set_ok(false);
-        r->set_message(status.error_message());
+        LOG_DEBUG("ChatSession::AckInflight: uid={}, msg_id={}, latency_ms={}, remaining={}",
+                  uid_.load(), msg_id, latency_ms, inflight_.size());
     } else {
-        redis->set(throttle_key, "1", 60);
-        r->set_ok(true);
-        r->set_email(email);
-        r->set_message("Verification code sent");
+        // ACK for unknown message - might be delayed ACK or duplicate
+        LOG_DEBUG("ChatSession::AckInflight: uid={}, msg_id={} not found (delayed or duplicate)",
+                  uid_.load(), msg_id);
     }
-    Enqueue(std::move(frame));
 }
 
-void ChatSession::HandleRegister(const im::RegisterReq& req) {
-    bool verify_on = IsVerifyEnabled();
-    if (req.email().empty() || req.username().empty() || req.password().empty() ||
-        (verify_on && req.verify_code().empty())) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_register_resp();
-        r->set_ok(false);
-        r->set_message("Missing required fields");
-        Enqueue(std::move(frame));
-        return;
-    }
 
-    if (verify_on) {
-        auto redis = RedisMgr::getInstance();
-        std::string code_key = "verify_code_" + req.email();
-        if (!redis->exists(code_key) || redis->get(code_key) != req.verify_code()) {
-            im::ServerFrame frame;
-            auto* r = frame.mutable_register_resp();
-            r->set_ok(false);
-            r->set_message("Invalid verification code");
-            Enqueue(std::move(frame));
-            return;
-        }
-    }
-
-    uint64_t uid = 0;
-    uint32_t code = UserServiceClient::getInstance()->CreateUser(
-        req.username(), req.password(), req.email(), uid);
-
-    im::ServerFrame frame;
-    auto* r = frame.mutable_register_resp();
-    if (code == ErrorCode::SUCCESS) {
-        if (verify_on) {
-            RedisMgr::getInstance()->del("verify_code_" + req.email());
-        }
-        r->set_ok(true);
-        r->set_uid(static_cast<int64_t>(uid));
-        r->set_message("Registration successful");
-    } else if (code == ErrorCode::USER_EXISTS) {
-        r->set_ok(false);
-        r->set_message("User already exists");
-    } else {
-        r->set_ok(false);
-        r->set_message("Registration failed");
-    }
-    Enqueue(std::move(frame));
+void ChatSession::UpdateActiveTime() {
+    last_active_time_ns.store(std::chrono::steady_clock::now().time_since_epoch().count(), std::memory_order_relaxed);
 }
 
-void ChatSession::HandleAuthLogin(const im::AuthLoginReq& req) {
-    if (req.handle().empty() || req.password().empty()) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_auth_login();
-        r->set_ok(false);
-        r->set_message("Handle and password are required");
-        Enqueue(std::move(frame));
-        return;
-    }
+void ChatSession::StartHeartbeatCheck() {
+    std::weak_ptr<ChatSession> weak_self = shared_from_this();
 
-    nlohmann::json resp_json;
-    bool ok = UserServiceClient::getInstance()->VerifyCredentials(
-        req.handle(), req.password(), resp_json);
-
-    im::ServerFrame frame;
-    auto* r = frame.mutable_auth_login();
-    if (ok) {
-        r->set_ok(true);
-        r->set_uid(resp_json["uid"].get<int64_t>());
-        r->set_token(resp_json["token"].get<std::string>());
-        r->set_message("Login successful");
-    } else {
-        r->set_ok(false);
-        r->set_message(resp_json.value("message", "Invalid credentials"));
-    }
-    Enqueue(std::move(frame));
+    TimerWheel::getInstance()->AddTask(30000, [weak_self]() {
+        if (auto self = weak_self.lock()) {
+            self->CheckHeartbeat();
+        }
+    });
 }
 
-void ChatSession::HandleResetPassword(const im::ResetPasswordReq& req) {
-    bool verify_on = IsVerifyEnabled();
-    if (req.email().empty() || req.new_password().empty() ||
-        (verify_on && req.verify_code().empty())) {
-        im::ServerFrame frame;
-        auto* r = frame.mutable_reset_password();
-        r->set_ok(false);
-        r->set_message("Missing required fields");
-        Enqueue(std::move(frame));
-        return;
-    }
+void ChatSession::CheckHeartbeat() {
+    auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+    auto last = last_active_time_ns.load(std::memory_order_relaxed);
 
-    if (verify_on) {
-        auto redis = RedisMgr::getInstance();
-        std::string code_key = "verify_code_" + req.email();
-        if (!redis->exists(code_key) || redis->get(code_key) != req.verify_code()) {
-            im::ServerFrame frame;
-            auto* r = frame.mutable_reset_password();
-            r->set_ok(false);
-            r->set_message("Invalid verification code");
-            Enqueue(std::move(frame));
-            return;
-        }
-    }
+    auto diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::duration(now - last)).count();
 
-    im::ServerFrame frame;
-    auto* r = frame.mutable_reset_password();
-    if (UserServiceClient::getInstance()->ResetPassword(req.email(), req.new_password())) {
-        if (verify_on) {
-            RedisMgr::getInstance()->del("verify_code_" + req.email());
-        }
-        r->set_ok(true);
-        r->set_message("Password reset successful");
+    if (diff_ms >= 30000) {
+        // 超时，断开连接
+        LOG_INFO("Session timeout, kicking offline.");
+        this->KickAndFinish("Session timeout");
     } else {
-        r->set_ok(false);
-        r->set_message("Failed to reset password");
+        int next_check_delay = 30000 - diff_ms;
+        std::weak_ptr<ChatSession> weak_self = shared_from_this();
+        TimerWheel::getInstance()->AddTask(next_check_delay, [weak_self]() {
+            if (auto self = weak_self.lock()) {
+                self->CheckHeartbeat();
+            }
+        });
     }
-    Enqueue(std::move(frame));
 }

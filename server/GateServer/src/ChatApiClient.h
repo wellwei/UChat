@@ -17,7 +17,9 @@ public:
 
     im::SendMessageResp SendMessage(const im::SendMessageReq& req);
     im::AckUpResp Ack(const im::AckUpReq& req);
-    im::PullHistoryUpResp PullHistory(const im::PullHistoryUpReq& req);
+
+    // Sync: pull missed messages based on client's MaxSeqID (replaces GetOfflineMessages)
+    im::SyncUpResp Sync(const im::SyncUpReq& req);
 
 private:
     ChatApiClient();

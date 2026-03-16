@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+project(GateServer)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
 
@@ -89,6 +90,9 @@ add_library(GateServerLib SHARED ${SOURCES}
         src/GatewayServer.cpp
         src/ChatApiClient.h
         src/ChatApiClient.cpp
+        src/ChatControlApiService.h
+        src/ChatControlApiService.cpp
+        src/TimerWheel.h
 )
 
 target_include_directories(GateServerLib PUBLIC

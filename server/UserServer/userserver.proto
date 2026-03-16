@@ -100,6 +100,44 @@ message SearchUserResponse {
     repeated UserProfile users = 3;   // 用户列表
 }
 
+// ===== M3: 联系人消息 =====
+message SendContactRequestReq {
+    uint64 from_uid = 1;
+    uint64 to_uid   = 2;
+    string note     = 3;
+}
+message SendContactRequestResp {
+    bool   success    = 1;
+    string error_msg  = 2;
+    uint64 request_id = 3;
+}
+
+message HandleContactRequestReq {
+    uint64 request_id  = 1;
+    uint64 handler_uid = 2;
+    bool   accept      = 3;
+}
+message HandleContactRequestResp {
+    bool   success   = 1;
+    string error_msg = 2;
+    uint64 from_uid  = 3;
+}
+
+message GetContactsReq  { uint64 uid = 1; }
+message ContactEntry    { uint64 uid = 1; string username = 2; string nickname = 3; string avatar_url = 4; }
+message GetContactsResp { bool success = 1; string error_msg = 2; repeated ContactEntry contacts = 3; }
+
+message GetContactRequestsReq { uint64 uid = 1; }
+message ContactRequest {
+    uint64 request_id    = 1;
+    uint64 from_uid      = 2;
+    string from_username = 3;
+    string from_avatar   = 4;
+    string note          = 5;
+    int64  ts_ms         = 6;
+}
+message GetContactRequestsResp { bool success = 1; string error_msg = 2; repeated ContactRequest requests = 3; }
+
 // 用户服务
 service UserService {
     // 验证用户凭证
@@ -119,4 +157,10 @@ service UserService {
 
     // 搜索用户
     rpc SearchUser(SearchUserRequest) returns (SearchUserResponse) {}
+
+    // M3: 联系人操作
+    rpc SendContactRequest(SendContactRequestReq)     returns (SendContactRequestResp)  {}
+    rpc HandleContactRequest(HandleContactRequestReq) returns (HandleContactRequestResp){}
+    rpc GetContacts(GetContactsReq)                   returns (GetContactsResp)         {}
+    rpc GetContactRequests(GetContactRequestsReq)     returns (GetContactRequestsResp)  {}
 }

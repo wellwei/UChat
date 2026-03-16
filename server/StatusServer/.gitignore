@@ -3,3 +3,4 @@ build
 vcpkg_installed
 
 proto_generated/*
+.cache/

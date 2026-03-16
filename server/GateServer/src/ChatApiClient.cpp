@@ -45,12 +45,22 @@ im::AckUpResp ChatApiClient::Ack(const im::AckUpReq& req) {
     return resp;
 }
 
-im::PullHistoryUpResp ChatApiClient::PullHistory(const im::PullHistoryUpReq& req) {
+im::SyncUpResp ChatApiClient::Sync(const im::SyncUpReq& req) {
     auto stub = stub_pool_->getStub();
     grpc::ClientContext ctx;
-    im::PullHistoryUpResp resp;
-    if (!stub) return resp;
-    stub->PullHistory(&ctx, req, &resp);
+    im::SyncUpResp resp;
+
+    ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(5000));
+
+    if (!stub) {
+        resp.set_ok(false);
+        return resp;
+    }
+    auto status = stub->Sync(&ctx, req, &resp);
     stub_pool_->returnStub(std::move(stub));
+    if (!status.ok()) {
+        resp.set_ok(false);
+        LOG_ERROR("ChatApiClient::Sync failed: {}", status.error_message());
+    }
     return resp;
 }

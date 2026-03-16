@@ -21,6 +21,12 @@ public:
     bool resetPassword(const std::string& email, const std::string& new_password);
 
     bool searchUser(const std::string& keyword, std::vector<UserProfile>& users);
+
+    // M3: 联系人操作
+    bool sendContactRequest(uint64_t from_uid, uint64_t to_uid, const std::string& note, uint64_t& out_request_id);
+    bool handleContactRequest(uint64_t request_id, uint64_t handler_uid, bool accept, uint64_t& out_from_uid);
+    bool getContacts(uint64_t uid, std::vector<ContactEntry>& contacts);
+    bool getContactRequests(uint64_t uid, std::vector<ContactRequest>& requests);
     
 private:
     MysqlMgr();

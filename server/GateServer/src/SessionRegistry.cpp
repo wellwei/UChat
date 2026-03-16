@@ -37,3 +37,14 @@ std::shared_ptr<ChatSession> SessionRegistry::Find(int64_t uid) {
     auto it = sessions_.find(uid);
     return it != sessions_.end() ? it->second : nullptr;
 }
+
+std::vector<std::pair<int64_t, int64_t> > SessionRegistry::GetAllSessionsPair() {
+    std::vector<std::pair<int64_t, int64_t> > sessions_pairs;
+
+    for (const auto&[fst, snd] : sessions_) {
+        sessions_pairs.emplace_back(fst, snd->GetSessionVer());
+    }
+
+    return sessions_pairs;
+}
+

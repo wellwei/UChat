@@ -13,6 +13,12 @@ public:
 
     grpc::Status SearchUser(grpc::ServerContext* context, const SearchUserRequest* request, SearchUserResponse* response) override;
 
+    // M3: 联系人操作
+    grpc::Status SendContactRequest(grpc::ServerContext* context, const SendContactRequestReq* request, SendContactRequestResp* response) override;
+    grpc::Status HandleContactRequest(grpc::ServerContext* context, const HandleContactRequestReq* request, HandleContactRequestResp* response) override;
+    grpc::Status GetContacts(grpc::ServerContext* context, const GetContactsReq* request, GetContactsResp* response) override;
+    grpc::Status GetContactRequests(grpc::ServerContext* context, const GetContactRequestsReq* request, GetContactRequestsResp* response) override;
+
     void start();
     void stop();
     

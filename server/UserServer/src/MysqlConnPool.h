@@ -6,7 +6,7 @@
 class MysqlConnPool {
 public:
     MysqlConnPool(std::string url, std::string user, std::string password, std::string db,
-                  const int poolSize = 10);
+                  int poolSize = 20);
 
     ~MysqlConnPool();
 

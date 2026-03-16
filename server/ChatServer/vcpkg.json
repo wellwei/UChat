@@ -1,12 +1,19 @@
 {
     "name": "uchat-chat-server",
-    "version": "0.0.1",
+    "version": "1.0.0",
+    "builtin-baseline": "0d5cae153065957df7f382de7c1549ccc88027e5",
     "dependencies": [
+        {
+            "name" : "mysql-connector-cpp",
+            "version>=" : "9.1.0",
+            "features" : [ "jdbc" ]
+        },
         "spdlog",
         "nlohmann-json",
         "jwt-cpp",
         "boost-asio",
         "boost-uuid",
-        "grpc"
+        "grpc",
+        "redis-plus-plus"
     ]
 }

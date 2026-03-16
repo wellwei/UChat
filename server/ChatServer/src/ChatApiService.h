@@ -4,15 +4,14 @@
 #include <string>
 #include <memory>
 #include "im.grpc.pb.h"
-#include "PresenceClient.h"
 #include "DeliverApiClient.h"
 
 // Implements the ChatApi gRPC service (called by GateServer).
-// Handles: SendMessage (idempotent), Ack, PullHistory (stub for M5).
+// Handles: SendMessage (idempotent, fire-and-forget), Ack, Sync.
+// Uses RedisMgr singleton directly for all Redis operations.
 class ChatApiService : public im::ChatApi::CallbackService {
 public:
-    ChatApiService(std::shared_ptr<PresenceClient> presence_client,
-                   std::shared_ptr<DeliverApiClient> deliver_client);
+    explicit ChatApiService(std::shared_ptr<DeliverApiClient> deliver_client);
 
     grpc::ServerUnaryReactor* SendMessage(
         grpc::CallbackServerContext* context,
@@ -24,12 +23,12 @@ public:
         const im::AckUpReq* request,
         im::AckUpResp* response) override;
 
-    grpc::ServerUnaryReactor* PullHistory(
+    // Sync: pull missed messages based on client's MaxSeqID per conversation
+    grpc::ServerUnaryReactor* Sync(
         grpc::CallbackServerContext* context,
-        const im::PullHistoryUpReq* request,
-        im::PullHistoryUpResp* response) override;
+        const im::SyncUpReq* request,
+        im::SyncUpResp* response) override;
 
 private:
-    std::shared_ptr<PresenceClient> presence_client_;
     std::shared_ptr<DeliverApiClient> deliver_client_;
 };

@@ -9,13 +9,15 @@
 // Creates a new ChatSession for each connecting client.
 class ChatTunnelService : public im::ChatTunnel::CallbackService {
 public:
-    ChatTunnelService(SessionRegistry* registry, const std::string& gateway_id, int online_ttl_seconds);
+    ChatTunnelService(SessionRegistry* registry, const std::string& gateway_id);
 
     grpc::ServerBidiReactor<im::ClientFrame, im::ServerFrame>*
     Connect(grpc::CallbackServerContext* context) override;
 
+    void StartPresenceRefreshTask();
+
 private:
+    void RefreshPresenceRoutine();
     SessionRegistry* registry_;
     std::string gateway_id_;
-    int online_ttl_seconds_;
 };

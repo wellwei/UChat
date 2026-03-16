@@ -24,6 +24,7 @@ static void StartSignalWaiter() {
     sig_thread = std::thread([set]() mutable {
         int sig = 0;
         sigwait(&set, &sig);
+        TimerWheel::getInstance()->Stop();
         if (g_gateway) g_gateway->Stop();
     });
 }
@@ -33,6 +34,7 @@ int main() {
     StartSignalWaiter();
 
     Logger::init("logs", "gateserver");
+    Singleton<TimerWheel>::getInstance();
 
     try {
         Singleton<ConfigMgr>::getInstance();

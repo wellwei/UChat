@@ -13,46 +13,41 @@ message Envelope {
   int64  ts_ms = 6;         // 服务器时间戳，毫秒
   bytes  payload = 7;
   string trace_id = 8;      // 全局追踪观测
+  uint64 seq_id = 9;        // 会话级单调递增序列号，用于同步
 }
 
 enum AckType {
   ACK_UNKNOWN = 0;
-  ACK_DELIVERED = 1;        // 已推送
-  ACK_READ = 2;             // 已读
+  ACK_RECEIVED = 1;    // 网络层：客户端已收到消息
+  ACK_DELIVERED = 2;   // 业务层：消息已送达用户设备
+  ACK_READ = 3;        // 业务层：用户已读消息
 }
 
-// ========== 1) Client <-> GateServer: bidirectional stream ==========
+// ====================
+// 1. 数据通道：纯粹的双向流，只干三件事：连网、发消息、收推送
+// ====================
 service ChatTunnel {
   rpc Connect(stream ClientFrame) returns (stream ServerFrame);
 }
 
 message ClientFrame {
+  // 保持精简 - 只保留核心数据流操作
   oneof body {
-    LoginReq         login          = 1;
-    Heartbeat        hb             = 2;
-    SendReq          send           = 3;
-    AckReq           ack            = 4;
-    PullHistoryReq   pull           = 5;
-    GetVerifyCodeReq get_verify_code = 6;
-    RegisterReq      register_req   = 7;
-    AuthLoginReq     auth_login     = 8;
-    ResetPasswordReq reset_password = 9;
+    LoginReq    login = 1;  // 鉴权重连
+    Heartbeat   hb    = 2;  // 心跳
+    SendReq     send  = 3;  // 发消息
+    AckReq      ack   = 4;  // 底层 Ack 流控
   }
 }
 
 message ServerFrame {
   oneof body {
-    LoginResp        login          = 1;
-    Pong             pong           = 2;
-    PushMsg          push           = 3;
-    SendResp         send           = 4;
-    PullHistoryResp  history        = 5;
-    Kick             kick           = 6;
-    Error            err            = 7;
-    GetVerifyCodeResp get_verify_code = 8;
-    RegisterResp     register_resp  = 9;
-    AuthLoginResp    auth_login     = 10;
-    ResetPasswordResp reset_password = 11;
+    LoginResp   login = 1;
+    Pong        pong  = 2;
+    PushMsg     push  = 3;  // 收到新消息推送
+    SendResp    send  = 4;
+    Kick        kick  = 5;
+    Error       err   = 6;
   }
 }
 
@@ -67,16 +62,10 @@ message LoginResp {
   int64 session_ver = 3;
 }
 
-message Heartbeat {
-  int64 ts_ms = 1;
-}
-message Pong {
-  int64 ts_ms = 1;
-}
+message Heartbeat { int64 ts_ms = 1; }
+message Pong { int64 ts_ms = 1; }
 
-message SendReq {
-  Envelope env = 1;
-}
+message SendReq { Envelope env = 1; }
 message SendResp {
   bool ok = 1;
   string msg_id = 2;
@@ -89,32 +78,154 @@ message AckReq {
   int64 ts_ms = 3;
 }
 
-message PullHistoryReq {
-  int64 peer_uid = 1;
-  int64 limit = 2;
-  string before_msg_id = 3;
-}
-message PullHistoryResp {
-  repeated Envelope msgs = 1;
+message PushMsg { Envelope env = 1; }
+
+message Kick { string reason = 1; }
+message Error { int32 code = 1; string message = 2; }
+
+// ====================
+// 2. 控制信令通道：全部使用标准的 Unary RPC
+// 跟流互不干扰，不需要请求ID映射，客户端直接像调函数一样调用
+// ====================
+service ChatControlApi {
+  // Sync 离线消息同步
+  rpc Sync(SyncReq) returns (SyncResp);
+
+  // Auth 认证操作（无需登录态）
+  rpc GetVerifyCode(GetVerifyCodeReq) returns (GetVerifyCodeResp);
+  rpc Register(RegisterReq) returns (RegisterResp);
+  rpc AuthLogin(AuthLoginReq) returns (AuthLoginResp);
+  rpc ResetPassword(ResetPasswordReq) returns (ResetPasswordResp);
+
+  // User 用户资料（需要登录态）
+  rpc GetUserProfile(GetUserProfileReq) returns (GetUserProfileResp);
+  rpc UpdateUserProfile(UpdateUserProfileReq) returns (UpdateUserProfileResp);
+  rpc SearchUser(SearchUserReq) returns (SearchUserResp);
+
+  // Contact 联系人操作（需要登录态）
+  rpc GetContacts(GetContactsReq) returns (GetContactsResp);
+  rpc GetContactRequests(GetContactRequestsReq) returns (GetContactRequestsResp);
+  rpc SendContactRequest(SendContactReqReq) returns (SendContactReqResp);
+  rpc HandleContactRequest(HandleContactReqReq) returns (HandleContactReqResp);
 }
 
-message PushMsg {
-  Envelope env = 1;
+// ---------- Sync ----------
+message SyncReq {
+  // Map of conversation_id -> max_seq_id known by client
+  map<string, uint64> last_seq_map = 1;
 }
-
-message Kick {
-  string reason = 1;
-}
-message Error {
-  int32 code = 1;
+message SyncResp {
+  bool ok = 1;
   string message = 2;
+  repeated Envelope msgs = 3;
 }
 
-// ========== 2) GateServer -> ChatServer: unary ==========
+// ---------- Auth ----------
+message GetVerifyCodeReq  { string email = 1; }
+message GetVerifyCodeResp { bool ok = 1; string message = 2; string email = 3; }
+
+message RegisterReq {
+  string email       = 1;
+  string verify_code = 2;
+  string username    = 3;
+  string password    = 4;
+}
+message RegisterResp { bool ok = 1; string message = 2; int64 uid = 3; }
+
+message AuthLoginReq  { string handle = 1; string password = 2; }
+message AuthLoginResp { bool ok = 1; string message = 2; int64 uid = 3; string token = 4; }
+
+message ResetPasswordReq  { string email = 1; string verify_code = 2; string new_password = 3; }
+message ResetPasswordResp { bool ok = 1; string message = 2; }
+
+// ---------- Profile ----------
+message GetUserProfileReq {
+  int64 target_uid = 1;  // 0 means self
+}
+message GetUserProfileResp {
+  bool ok = 1;
+  string message = 2;
+  ProfileData profile = 3;
+}
+
+message UpdateUserProfileReq {
+  string nickname = 1;
+  string avatar_url = 2;
+  string phone = 3;
+  int32 gender = 4;
+  string signature = 5;
+  string location = 6;
+}
+message UpdateUserProfileResp {
+  bool ok = 1;
+  string message = 2;
+  ProfileData profile = 3;
+}
+
+message SearchUserReq {
+  string keyword = 1;
+  int32 limit = 2;
+}
+message SearchUserResp {
+  bool ok = 1;
+  string message = 2;
+  repeated ProfileData profiles = 3;
+}
+
+message ProfilePushNotify {
+  int64 uid = 1;
+  ProfileData profile = 2;
+}
+
+message ProfileData {
+  int64 uid = 1;
+  string username = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  string email = 5;
+  string phone = 6;
+  int32 gender = 7;
+  string signature = 8;
+  string location = 9;
+  int32 status = 10;
+  string create_time = 11;
+  string update_time = 12;
+}
+
+// ---------- Contact ----------
+message GetContactsReq      {}
+message GetContactRequestsReq {}
+
+message SendContactReqReq   { int64 to_uid = 1; string note = 2; }
+message HandleContactReqReq { int64 request_id = 1; bool accept = 2; }
+
+message ContactEntryData   { int64 uid = 1; string username = 2; string nickname = 3; string avatar_url = 4; }
+message ContactRequestData {
+  int64 request_id = 1; int64 from_uid = 2; string from_username = 3;
+  string from_avatar = 4; string note = 5; int64 ts_ms = 6;
+}
+
+message GetContactsResp        { bool ok = 1; string message = 2; repeated ContactEntryData contacts = 3; }
+message GetContactRequestsResp { bool ok = 1; string message = 2; repeated ContactRequestData requests = 3; }
+message SendContactReqResp     { bool ok = 1; string message = 2; }
+message HandleContactReqResp   { bool ok = 1; string message = 2; }
+
+message ContactReqNotify {
+  int64 request_id = 1; int64 from_uid = 2; string from_username = 3;
+  string from_avatar = 4; string note = 5; int64 ts_ms = 6;
+}
+message ContactAcceptNotify {
+  int64 uid = 1; string username = 2; string nickname = 3; string avatar_url = 4;
+}
+
+// ====================
+// 3. GateServer -> ChatServer: 内部 RPC
+// ====================
 service ChatApi {
   rpc SendMessage(SendMessageReq) returns (SendMessageResp);
   rpc Ack(AckUpReq) returns (AckUpResp);
-  rpc PullHistory(PullHistoryUpReq) returns (PullHistoryUpResp);
+  // Sync: pull missed messages based on client's MaxSeqID
+  rpc Sync(SyncUpReq) returns (SyncUpResp);
 }
 
 message SendMessageReq {
@@ -132,27 +243,21 @@ message SendMessageResp {
   string reason = 4;
 }
 
-message AckUpReq {
+message AckUpReq { int64 uid = 1; string msg_id = 2; AckType type = 3; int64 ts_ms = 4; }
+message AckUpResp { bool ok = 1; }
+
+message SyncUpReq {
   int64 uid = 1;
-  string msg_id = 2;
-  AckType type = 3;
-  int64 ts_ms = 4;
+  map<string, uint64> last_seq_map = 2;
 }
-message AckUpResp {
+message SyncUpResp {
   bool ok = 1;
+  repeated Envelope msgs = 2;
 }
 
-message PullHistoryUpReq {
-  int64 uid = 1;
-  int64 peer_uid = 2;
-  int64 limit = 3;
-  string before_msg_id = 4;
-}
-message PullHistoryUpResp {
-  repeated Envelope msgs = 1;
-}
-
-// ========== 3) ChatServer -> GateServer: unary ==========
+// ====================
+// 4. ChatServer -> GateServer: 投递 RPC
+// ====================
 service DeliverApi {
   rpc DeliverToUser(DeliverToUserReq) returns (DeliverToUserResp);
   rpc DeliverBatch(DeliverBatchReq) returns (DeliverBatchResp);
@@ -177,24 +282,3 @@ message DeliverBatchResp {
   int32 delivered = 1;
   int32 offline = 2;
 }
-
-// ========== 4) Auth operations (pre-LoginReq, no authed_ required) ==========
-
-message GetVerifyCodeReq  { string email = 1; }
-message GetVerifyCodeResp { bool ok = 1; string message = 2; string email = 3; }
-
-message RegisterReq {
-  string email       = 1;
-  string verify_code = 2;
-  string username    = 3;
-  string password    = 4;
-}
-message RegisterResp { bool ok = 1; string message = 2; int64 uid = 3; }
-
-// AuthLoginReq 替代 HTTP /login：handle+password → uid+JWT token
-// 客户端拿到 token 后用 LoginReq 建立 chat session（现有流程不变）
-message AuthLoginReq  { string handle = 1; string password = 2; }
-message AuthLoginResp { bool ok = 1; string message = 2; int64 uid = 3; string token = 4; }
-
-message ResetPasswordReq  { string email = 1; string verify_code = 2; string new_password = 3; }
-message ResetPasswordResp { bool ok = 1; string message = 2; }

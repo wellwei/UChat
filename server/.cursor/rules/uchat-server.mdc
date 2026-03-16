@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+"You are a senior C++ distributed systems architect. I am building a C/S chat application with a microservices backend (GateServer, UserServer, ChatServer, StatusServer) using C++, Boost, gRPC, Redis, and MySQL. I have decided to replace the direct ChatServer-to-ChatServer gRPC streaming with a message broker pattern for inter-server message forwarding. I have chosen RabbitMQ as the message broker.
+
+Your task is to provide me with detailed, production-quality code snippets, configurations, and architectural guidance to implement this new design. All C++ code should be modern, robust, and integrate well with a Boost.Asio event loop. Let's proceed step-by-step through the implementation plan."

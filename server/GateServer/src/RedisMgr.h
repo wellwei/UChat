@@ -45,6 +45,8 @@ public:
     // Uses a Lua script to avoid TOCTOU races.
     bool conditionalDel(const std::string &key, const std::string &expected_value);
 
+    bool refreshOnlineSessionsPresence(std::vector<std::pair<int64_t, int64_t>> &online_sessions, std::string &gateway_id);
+
 private:
     RedisMgr();
 

@@ -32,6 +32,9 @@ grpc::ServerUnaryReactor* DeliverApiService::DeliverToUser(
         return reactor;
     }
 
+    // Track message in inflight map for ACK handling
+    session->TrackInflight(request->env());
+
     im::ServerFrame frame;
     *frame.mutable_push()->mutable_env() = request->env();
     session->Enqueue(std::move(frame));
@@ -58,6 +61,9 @@ grpc::ServerUnaryReactor* DeliverApiService::DeliverBatch(
             ++offline;
             continue;
         }
+        // Track message for ACK handling
+        session->TrackInflight(request->env());
+
         im::ServerFrame frame;
         *frame.mutable_push()->mutable_env() = request->env();
         session->Enqueue(std::move(frame));

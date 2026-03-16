@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(ChatServer)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
+set(CMAKE_PREFIX_PATH  ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -62,21 +62,16 @@ add_executable(ChatServer
         src/ConfigMgr.h
         src/ConfigMgr.cpp
         src/util.h
-        src/ServicePool.h
-        src/ServicePool.cpp
-        src/GrpcStubPool.h
-        src/StatusGrpcClient.h
-        src/StatusGrpcClient.cpp
-        src/MQGatewayClient.h
-        src/MQGatewayClient.cpp
         src/ChatApiService.h
         src/ChatApiService.cpp
-        src/PresenceClient.h
-        src/PresenceClient.cpp
         src/DeliverApiClient.h
         src/DeliverApiClient.cpp
         src/NewChatServer.h
         src/NewChatServer.cpp
+        src/RedisConnPool.h
+        src/RedisConnPool.cpp
+        src/RedisMgr.h
+        src/RedisMgr.cpp
         main.cpp
 )
 

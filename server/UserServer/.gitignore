@@ -6,3 +6,4 @@ build/
 proto_generated/*
 
 vcpkg_installed/
+.cache/

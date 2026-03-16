@@ -116,3 +116,6 @@ configure_file(
         ${CMAKE_BINARY_DIR}/config.ini
         COPYONLY
 )
+
+# 测试工具
+add_subdirectory(Tests)
