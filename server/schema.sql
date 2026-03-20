@@ -41,3 +41,30 @@ CREATE TABLE IF NOT EXISTS contacts (
     FOREIGN KEY (owner_uid)   REFERENCES users(uid),
     FOREIGN KEY (contact_uid) REFERENCES users(uid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS chat_groups (
+    group_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    owner_uid    BIGINT UNSIGNED NOT NULL,
+    name         VARCHAR(100) NOT NULL,
+    avatar_url   VARCHAR(255) DEFAULT '',
+    notice       VARCHAR(255) DEFAULT '',
+    description  VARCHAR(255) DEFAULT '',
+    status       TINYINT NOT NULL DEFAULT 1 COMMENT '1=ACTIVE, 0=DELETED',
+    create_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_owner_uid (owner_uid),
+    INDEX idx_name (name),
+    FOREIGN KEY (owner_uid) REFERENCES users(uid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS group_members (
+    id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    group_id     BIGINT UNSIGNED NOT NULL,
+    uid          BIGINT UNSIGNED NOT NULL,
+    role         TINYINT NOT NULL DEFAULT 0 COMMENT '0=MEMBER, 1=OWNER',
+    create_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_group_uid (group_id, uid),
+    INDEX idx_uid (uid),
+    FOREIGN KEY (group_id) REFERENCES chat_groups(group_id) ON DELETE CASCADE,
+    FOREIGN KEY (uid) REFERENCES users(uid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

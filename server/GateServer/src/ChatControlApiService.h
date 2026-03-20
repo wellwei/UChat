@@ -62,6 +62,42 @@ public:
                                       const im::HandleContactReqReq* request,
                                       im::HandleContactReqResp* response) override;
 
+    grpc::Status CreateGroup(grpc::ServerContext* context,
+                             const im::CreateGroupReq* request,
+                             im::CreateGroupResp* response) override;
+
+    grpc::Status UpdateGroup(grpc::ServerContext* context,
+                             const im::UpdateGroupReq* request,
+                             im::UpdateGroupResp* response) override;
+
+    grpc::Status DeleteGroup(grpc::ServerContext* context,
+                             const im::DeleteGroupReq* request,
+                             im::DeleteGroupResp* response) override;
+
+    grpc::Status GetGroup(grpc::ServerContext* context,
+                          const im::GetGroupReq* request,
+                          im::GetGroupResp* response) override;
+
+    grpc::Status SearchGroups(grpc::ServerContext* context,
+                              const im::SearchGroupsReq* request,
+                              im::SearchGroupsResp* response) override;
+
+    grpc::Status ListMyGroups(grpc::ServerContext* context,
+                              const im::ListMyGroupsReq* request,
+                              im::ListMyGroupsResp* response) override;
+
+    grpc::Status JoinGroup(grpc::ServerContext* context,
+                           const im::JoinGroupReq* request,
+                           im::JoinGroupResp* response) override;
+
+    grpc::Status QuitGroup(grpc::ServerContext* context,
+                           const im::QuitGroupReq* request,
+                           im::QuitGroupResp* response) override;
+
+    grpc::Status GetGroupMembers(grpc::ServerContext* context,
+                                 const im::GetGroupMembersReq* request,
+                                 im::GetGroupMembersResp* response) override;
+
 private:
     // Helper to extract uid from metadata (set by interceptor)
     int64_t GetUidFromContext(grpc::ServerContext* context);

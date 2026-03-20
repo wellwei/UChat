@@ -5,8 +5,11 @@
 #include "Logger.h"
 #include "RedisMgr.h"
 #include <nlohmann/json.hpp>
+#include <unordered_set>
 
 using json = nlohmann::json;
+
+constexpr uint32_t MAX_GROUP_MEMBERS = 100;
 
 inline std::string getUserProfileCacheKey(uint64_t uid) {
     return "user_profile:" + std::to_string(uid);
@@ -324,6 +327,41 @@ bool MysqlMgr::fromMysqlResult(const sql::ResultSet* rs, UserProfile& user_profi
     }
 }
 
+bool MysqlMgr::fromGroupResult(const sql::ResultSet* rs, GroupInfo& group) {
+    if (!rs) {
+        return false;
+    }
+    try {
+        group.set_group_id(rs->getUInt64("group_id"));
+        group.set_owner_uid(rs->getUInt64("owner_uid"));
+        if (!rs->isNull("name")) {
+            group.set_name(rs->getString("name"));
+        }
+        if (!rs->isNull("avatar_url")) {
+            group.set_avatar_url(rs->getString("avatar_url"));
+        }
+        if (!rs->isNull("notice")) {
+            group.set_notice(rs->getString("notice"));
+        }
+        if (!rs->isNull("description")) {
+            group.set_description(rs->getString("description"));
+        }
+        if (!rs->isNull("member_count")) {
+            group.set_member_count(rs->getUInt("member_count"));
+        }
+        if (!rs->isNull("create_time")) {
+            group.set_create_time(rs->getString("create_time"));
+        }
+        if (!rs->isNull("update_time")) {
+            group.set_update_time(rs->getString("update_time"));
+        }
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::fromGroupResult() 失败：{}", e.what());
+        return false;
+    }
+}
+
 /**
  * 搜索用户
  * @param keyword 关键词
@@ -599,6 +637,410 @@ bool MysqlMgr::getContactRequests(uint64_t uid, std::vector<ContactRequest>& req
         return true;
     } catch (sql::SQLException& e) {
         LOG_ERROR("MysqlMgr::getContactRequests() 查询失败：{}", e.what());
+        return false;
+    }
+}
+
+// ========== M4: 群聊操作 ==========
+
+bool MysqlMgr::createGroup(const CreateGroupReq& request, GroupInfo& group) {
+    if (request.owner_uid() == 0 || request.name().empty()) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::createGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        conn->setAutoCommit(false);
+        try {
+            auto insert_group = conn->prepareStatement(
+                "INSERT INTO chat_groups (owner_uid, name, avatar_url, notice, description, status) "
+                "VALUES (?, ?, ?, ?, ?, 1)");
+            Defer insert_group_defer([&insert_group]() { delete insert_group; });
+
+            insert_group->setUInt64(1, request.owner_uid());
+            insert_group->setString(2, request.name());
+            insert_group->setString(3, request.avatar_url());
+            insert_group->setString(4, request.notice());
+            insert_group->setString(5, request.description());
+            insert_group->executeUpdate();
+
+            std::unique_ptr<sql::Statement> id_stmt(conn->createStatement());
+            std::unique_ptr<sql::ResultSet> id_rs(id_stmt->executeQuery("SELECT LAST_INSERT_ID()"));
+            if (!id_rs->next()) {
+                throw std::runtime_error("failed to get last insert id");
+            }
+            const uint64_t group_id = id_rs->getUInt64(1);
+
+            auto insert_member = conn->prepareStatement(
+                "INSERT INTO group_members (group_id, uid, role) VALUES (?, ?, ?)");
+            Defer insert_member_defer([&insert_member]() { delete insert_member; });
+
+            insert_member->setUInt64(1, group_id);
+            insert_member->setUInt64(2, request.owner_uid());
+            insert_member->setInt(3, static_cast<int>(GroupMemberRole::GROUP_OWNER));
+            insert_member->executeUpdate();
+
+            std::unordered_set<uint64_t> unique_members;
+            for (const auto uid : request.member_uids()) {
+                if (uid == 0 || uid == request.owner_uid()) {
+                    continue;
+                }
+                unique_members.insert(uid);
+            }
+
+            for (const auto uid : unique_members) {
+                insert_member->setUInt64(1, group_id);
+                insert_member->setUInt64(2, uid);
+                insert_member->setInt(3, static_cast<int>(GroupMemberRole::GROUP_MEMBER));
+                insert_member->executeUpdate();
+            }
+
+            if (unique_members.size() + 1 > MAX_GROUP_MEMBERS) {
+                throw std::runtime_error("group member count exceeds limit");
+            }
+
+            conn->commit();
+            conn->setAutoCommit(true);
+            return getGroup(request.owner_uid(), group_id, group);
+        } catch (...) {
+            conn->rollback();
+            conn->setAutoCommit(true);
+            throw;
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::createGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::updateGroup(const UpdateGroupReq& request, GroupInfo& group) {
+    if (request.operator_uid() == 0 || request.group_id() == 0 || request.name().empty()) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::updateGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto stmt = conn->prepareStatement(
+            "UPDATE chat_groups "
+            "SET name = ?, avatar_url = ?, notice = ?, description = ?, update_time = NOW() "
+            "WHERE group_id = ? AND owner_uid = ? AND status = 1");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+
+        stmt->setString(1, request.name());
+        stmt->setString(2, request.avatar_url());
+        stmt->setString(3, request.notice());
+        stmt->setString(4, request.description());
+        stmt->setUInt64(5, request.group_id());
+        stmt->setUInt64(6, request.operator_uid());
+
+        if (stmt->executeUpdate() <= 0) {
+            return false;
+        }
+        return getGroup(request.operator_uid(), request.group_id(), group);
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::updateGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::deleteGroup(uint64_t operator_uid, uint64_t group_id) {
+    if (operator_uid == 0 || group_id == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::deleteGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto stmt = conn->prepareStatement(
+            "DELETE FROM chat_groups WHERE group_id = ? AND owner_uid = ? AND status = 1");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+
+        stmt->setUInt64(1, group_id);
+        stmt->setUInt64(2, operator_uid);
+        return stmt->executeUpdate() > 0;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::deleteGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::getGroup(uint64_t requester_uid, uint64_t group_id, GroupInfo& group) {
+    (void)requester_uid;
+    if (group_id == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::getGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto stmt = conn->prepareStatement(
+            "SELECT g.group_id, g.owner_uid, g.name, g.avatar_url, g.notice, g.description, "
+            "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id) AS member_count, "
+            "g.create_time, g.update_time "
+            "FROM chat_groups g WHERE g.group_id = ? AND g.status = 1");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+
+        stmt->setUInt64(1, group_id);
+        std::unique_ptr<sql::ResultSet> rs(stmt->executeQuery());
+        if (!rs->next()) {
+            return false;
+        }
+        return fromGroupResult(rs.get(), group);
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::getGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::searchGroups(const std::string& keyword, uint32_t limit, std::vector<GroupInfo>& groups) {
+    if (keyword.empty()) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::searchGroups() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto stmt = conn->prepareStatement(
+            "SELECT g.group_id, g.owner_uid, g.name, g.avatar_url, g.notice, g.description, "
+            "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id) AS member_count, "
+            "g.create_time, g.update_time "
+            "FROM chat_groups g "
+            "WHERE g.status = 1 AND g.name LIKE ? "
+            "ORDER BY g.group_id DESC LIMIT ?");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+
+        stmt->setString(1, "%" + keyword + "%");
+        stmt->setUInt(2, limit == 0 ? 20U : std::min<uint32_t>(limit, 100U));
+        std::unique_ptr<sql::ResultSet> rs(stmt->executeQuery());
+        while (rs->next()) {
+            GroupInfo group;
+            if (fromGroupResult(rs.get(), group)) {
+                groups.push_back(group);
+            }
+        }
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::searchGroups() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::listMyGroups(uint64_t uid, std::vector<GroupInfo>& groups) {
+    if (uid == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::listMyGroups() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto stmt = conn->prepareStatement(
+            "SELECT g.group_id, g.owner_uid, g.name, g.avatar_url, g.notice, g.description, "
+            "(SELECT COUNT(*) FROM group_members gm2 WHERE gm2.group_id = g.group_id) AS member_count, "
+            "g.create_time, g.update_time "
+            "FROM group_members gm "
+            "JOIN chat_groups g ON gm.group_id = g.group_id "
+            "WHERE gm.uid = ? AND g.status = 1 "
+            "ORDER BY g.group_id DESC");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+
+        stmt->setUInt64(1, uid);
+        std::unique_ptr<sql::ResultSet> rs(stmt->executeQuery());
+        while (rs->next()) {
+            GroupInfo group;
+            if (fromGroupResult(rs.get(), group)) {
+                groups.push_back(group);
+            }
+        }
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::listMyGroups() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::joinGroup(uint64_t uid, uint64_t group_id) {
+    if (uid == 0 || group_id == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::joinGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto check_stmt = conn->prepareStatement(
+            "SELECT g.status, "
+            "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id) AS member_count "
+            "FROM chat_groups g WHERE g.group_id = ?");
+        Defer check_stmt_defer([&check_stmt]() { delete check_stmt; });
+        check_stmt->setUInt64(1, group_id);
+        std::unique_ptr<sql::ResultSet> check_rs(check_stmt->executeQuery());
+        if (!check_rs->next() || check_rs->getInt("status") != 1) {
+            return false;
+        }
+        if (check_rs->getUInt("member_count") >= MAX_GROUP_MEMBERS) {
+            return false;
+        }
+
+        auto stmt = conn->prepareStatement(
+            "INSERT IGNORE INTO group_members (group_id, uid, role) VALUES (?, ?, ?)");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+        stmt->setUInt64(1, group_id);
+        stmt->setUInt64(2, uid);
+        stmt->setInt(3, static_cast<int>(GroupMemberRole::GROUP_MEMBER));
+        stmt->executeUpdate();
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::joinGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::quitGroup(uint64_t uid, uint64_t group_id) {
+    if (uid == 0 || group_id == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::quitGroup() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto owner_stmt = conn->prepareStatement(
+            "SELECT owner_uid FROM chat_groups WHERE group_id = ? AND status = 1");
+        Defer owner_stmt_defer([&owner_stmt]() { delete owner_stmt; });
+        owner_stmt->setUInt64(1, group_id);
+        std::unique_ptr<sql::ResultSet> owner_rs(owner_stmt->executeQuery());
+        if (!owner_rs->next()) {
+            return false;
+        }
+        if (owner_rs->getUInt64("owner_uid") == uid) {
+            return false;
+        }
+
+        auto stmt = conn->prepareStatement(
+            "DELETE FROM group_members WHERE group_id = ? AND uid = ?");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+        stmt->setUInt64(1, group_id);
+        stmt->setUInt64(2, uid);
+        return stmt->executeUpdate() > 0;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::quitGroup() 失败：{}", e.what());
+        return false;
+    }
+}
+
+bool MysqlMgr::getGroupMembers(uint64_t requester_uid, uint64_t group_id, std::vector<GroupMemberInfo>& members) {
+    if (requester_uid == 0 || group_id == 0) {
+        return false;
+    }
+
+    auto conn = conn_pool->getConnection();
+    if (!conn) {
+        LOG_ERROR("MysqlMgr::getGroupMembers() 获取数据库连接失败");
+        return false;
+    }
+    Defer conn_defer([this, &conn]() {
+        conn_pool->returnConnection(std::move(conn));
+    });
+
+    try {
+        auto auth_stmt = conn->prepareStatement(
+            "SELECT 1 FROM group_members gm "
+            "JOIN chat_groups g ON gm.group_id = g.group_id "
+            "WHERE gm.group_id = ? AND gm.uid = ? AND g.status = 1");
+        Defer auth_stmt_defer([&auth_stmt]() { delete auth_stmt; });
+        auth_stmt->setUInt64(1, group_id);
+        auth_stmt->setUInt64(2, requester_uid);
+        std::unique_ptr<sql::ResultSet> auth_rs(auth_stmt->executeQuery());
+        if (!auth_rs->next()) {
+            return false;
+        }
+
+        auto stmt = conn->prepareStatement(
+            "SELECT u.uid, u.username, u.nickname, u.avatar_url, gm.role, gm.create_time "
+            "FROM group_members gm "
+            "JOIN users u ON gm.uid = u.uid "
+            "WHERE gm.group_id = ? "
+            "ORDER BY gm.role DESC, gm.id ASC");
+        Defer stmt_defer([&stmt]() { delete stmt; });
+        stmt->setUInt64(1, group_id);
+        std::unique_ptr<sql::ResultSet> rs(stmt->executeQuery());
+        while (rs->next()) {
+            GroupMemberInfo member;
+            member.set_uid(rs->getUInt64("uid"));
+            if (!rs->isNull("username")) {
+                member.set_username(rs->getString("username"));
+            }
+            if (!rs->isNull("nickname")) {
+                member.set_nickname(rs->getString("nickname"));
+            }
+            if (!rs->isNull("avatar_url")) {
+                member.set_avatar_url(rs->getString("avatar_url"));
+            }
+            member.set_role(static_cast<GroupMemberRole>(rs->getInt("role")));
+            if (!rs->isNull("create_time")) {
+                member.set_join_time(rs->getString("create_time"));
+            }
+            members.push_back(member);
+        }
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("MysqlMgr::getGroupMembers() 失败：{}", e.what());
         return false;
     }
 }

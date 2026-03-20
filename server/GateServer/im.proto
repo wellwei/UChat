@@ -13,7 +13,7 @@ message Envelope {
   int64  ts_ms = 6;         // 服务器时间戳，毫秒
   bytes  payload = 7;
   string trace_id = 8;      // 全局追踪观测
-  uint64 seq_id = 9;        // 会话级单调递增序列号，用于同步
+  uint64 seq_id = 9;        // 接收者视角的 inbox 序号，用于增量同步
 }
 
 enum AckType {
@@ -76,6 +76,7 @@ message AckReq {
   string msg_id = 1;
   AckType type = 2;
   int64 ts_ms = 3;
+  uint64 max_inbox_seq = 4;
 }
 
 message PushMsg { Envelope env = 1; }
@@ -107,17 +108,30 @@ service ChatControlApi {
   rpc GetContactRequests(GetContactRequestsReq) returns (GetContactRequestsResp);
   rpc SendContactRequest(SendContactReqReq) returns (SendContactReqResp);
   rpc HandleContactRequest(HandleContactReqReq) returns (HandleContactReqResp);
+
+  // Group 群聊操作（需要登录态）
+  rpc CreateGroup(CreateGroupReq) returns (CreateGroupResp);
+  rpc UpdateGroup(UpdateGroupReq) returns (UpdateGroupResp);
+  rpc DeleteGroup(DeleteGroupReq) returns (DeleteGroupResp);
+  rpc GetGroup(GetGroupReq) returns (GetGroupResp);
+  rpc SearchGroups(SearchGroupsReq) returns (SearchGroupsResp);
+  rpc ListMyGroups(ListMyGroupsReq) returns (ListMyGroupsResp);
+  rpc JoinGroup(JoinGroupReq) returns (JoinGroupResp);
+  rpc QuitGroup(QuitGroupReq) returns (QuitGroupResp);
+  rpc GetGroupMembers(GetGroupMembersReq) returns (GetGroupMembersResp);
 }
 
 // ---------- Sync ----------
 message SyncReq {
-  // Map of conversation_id -> max_seq_id known by client
-  map<string, uint64> last_seq_map = 1;
+  uint64 last_inbox_seq = 1;
+  uint32 limit = 2;
 }
 message SyncResp {
   bool ok = 1;
   string message = 2;
   repeated Envelope msgs = 3;
+  uint64 max_inbox_seq = 4;
+  bool has_more = 5;
 }
 
 // ---------- Auth ----------
@@ -218,6 +232,113 @@ message ContactAcceptNotify {
   int64 uid = 1; string username = 2; string nickname = 3; string avatar_url = 4;
 }
 
+// ---------- Group ----------
+message GroupData {
+  int64 group_id = 1;
+  int64 owner_uid = 2;
+  string name = 3;
+  string avatar_url = 4;
+  string notice = 5;
+  string description = 6;
+  uint32 member_count = 7;
+  string create_time = 8;
+  string update_time = 9;
+}
+
+message GroupMemberData {
+  int64 uid = 1;
+  string username = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  int32 role = 5;
+  string join_time = 6;
+}
+
+message CreateGroupReq {
+  string name = 1;
+  string avatar_url = 2;
+  string notice = 3;
+  string description = 4;
+  repeated int64 member_uids = 5;
+}
+message CreateGroupResp {
+  bool ok = 1;
+  string message = 2;
+  GroupData group = 3;
+}
+
+message UpdateGroupReq {
+  int64 group_id = 1;
+  string name = 2;
+  string avatar_url = 3;
+  string notice = 4;
+  string description = 5;
+}
+message UpdateGroupResp {
+  bool ok = 1;
+  string message = 2;
+  GroupData group = 3;
+}
+
+message DeleteGroupReq {
+  int64 group_id = 1;
+}
+message DeleteGroupResp {
+  bool ok = 1;
+  string message = 2;
+}
+
+message GetGroupReq {
+  int64 group_id = 1;
+}
+message GetGroupResp {
+  bool ok = 1;
+  string message = 2;
+  GroupData group = 3;
+}
+
+message SearchGroupsReq {
+  string keyword = 1;
+  uint32 limit = 2;
+}
+message SearchGroupsResp {
+  bool ok = 1;
+  string message = 2;
+  repeated GroupData groups = 3;
+}
+
+message ListMyGroupsReq {}
+message ListMyGroupsResp {
+  bool ok = 1;
+  string message = 2;
+  repeated GroupData groups = 3;
+}
+
+message JoinGroupReq {
+  int64 group_id = 1;
+}
+message JoinGroupResp {
+  bool ok = 1;
+  string message = 2;
+}
+
+message QuitGroupReq {
+  int64 group_id = 1;
+}
+message QuitGroupResp {
+  bool ok = 1;
+  string message = 2;
+}
+
+message GetGroupMembersReq {
+  int64 group_id = 1;
+}
+message GetGroupMembersResp {
+  bool ok = 1;
+  string message = 2;
+  repeated GroupMemberData members = 3;
+}
+
 // ====================
 // 3. GateServer -> ChatServer: 内部 RPC
 // ====================
@@ -243,16 +364,25 @@ message SendMessageResp {
   string reason = 4;
 }
 
-message AckUpReq { int64 uid = 1; string msg_id = 2; AckType type = 3; int64 ts_ms = 4; }
+message AckUpReq {
+  int64 uid = 1;
+  string msg_id = 2;
+  AckType type = 3;
+  int64 ts_ms = 4;
+  uint64 max_inbox_seq = 5;
+}
 message AckUpResp { bool ok = 1; }
 
 message SyncUpReq {
   int64 uid = 1;
-  map<string, uint64> last_seq_map = 2;
+  uint64 last_inbox_seq = 2;
+  uint32 limit = 3;
 }
 message SyncUpResp {
   bool ok = 1;
   repeated Envelope msgs = 2;
+  uint64 max_inbox_seq = 3;
+  bool has_more = 4;
 }
 
 // ====================

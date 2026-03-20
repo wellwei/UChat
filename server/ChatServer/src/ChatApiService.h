@@ -5,6 +5,7 @@
 #include <memory>
 #include "im.grpc.pb.h"
 #include "DeliverApiClient.h"
+#include "UserServiceClient.h"
 
 // Implements the ChatApi gRPC service (called by GateServer).
 // Handles: SendMessage (idempotent, fire-and-forget), Ack, Sync.
@@ -31,4 +32,5 @@ public:
 
 private:
     std::shared_ptr<DeliverApiClient> deliver_client_;
+    UserServiceClient user_service_client_;
 };

@@ -13,7 +13,7 @@ message Envelope {
   int64  ts_ms = 6;         // 服务器时间戳，毫秒
   bytes  payload = 7;
   string trace_id = 8;      // 全局追踪观测
-  uint64 seq_id = 9;        // 会话级单调递增序列号，用于同步
+  uint64 seq_id = 9;        // 接收者视角的 inbox 序号，用于增量同步
 }
 
 enum AckType {
@@ -76,6 +76,7 @@ message AckReq {
   string msg_id = 1;
   AckType type = 2;
   int64 ts_ms = 3;
+  uint64 max_inbox_seq = 4;
 }
 
 message PushMsg { Envelope env = 1; }
@@ -111,13 +112,15 @@ service ChatControlApi {
 
 // ---------- Sync ----------
 message SyncReq {
-  // Map of conversation_id -> max_seq_id known by client
-  map<string, uint64> last_seq_map = 1;
+  uint64 last_inbox_seq = 1;
+  uint32 limit = 2;
 }
 message SyncResp {
   bool ok = 1;
   string message = 2;
   repeated Envelope msgs = 3;
+  uint64 max_inbox_seq = 4;
+  bool has_more = 5;
 }
 
 // ---------- Auth ----------
@@ -243,16 +246,25 @@ message SendMessageResp {
   string reason = 4;
 }
 
-message AckUpReq { int64 uid = 1; string msg_id = 2; AckType type = 3; int64 ts_ms = 4; }
+message AckUpReq {
+  int64 uid = 1;
+  string msg_id = 2;
+  AckType type = 3;
+  int64 ts_ms = 4;
+  uint64 max_inbox_seq = 5;
+}
 message AckUpResp { bool ok = 1; }
 
 message SyncUpReq {
   int64 uid = 1;
-  map<string, uint64> last_seq_map = 2;
+  uint64 last_inbox_seq = 2;
+  uint32 limit = 3;
 }
 message SyncUpResp {
   bool ok = 1;
   repeated Envelope msgs = 2;
+  uint64 max_inbox_seq = 3;
+  bool has_more = 4;
 }
 
 // ====================

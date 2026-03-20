@@ -38,6 +38,27 @@ static void JsonToContactRequest(const nlohmann::json& j, im::ContactRequestData
     req->set_ts_ms(j.value("ts_ms", int64_t(0)));
 }
 
+static void JsonToGroupData(const nlohmann::json& j, im::GroupData* group) {
+    group->set_group_id(j.value("group_id", int64_t(0)));
+    group->set_owner_uid(j.value("owner_uid", int64_t(0)));
+    group->set_name(j.value("name", ""));
+    group->set_avatar_url(j.value("avatar_url", ""));
+    group->set_notice(j.value("notice", ""));
+    group->set_description(j.value("description", ""));
+    group->set_member_count(j.value("member_count", 0U));
+    group->set_create_time(j.value("create_time", ""));
+    group->set_update_time(j.value("update_time", ""));
+}
+
+static void JsonToGroupMemberData(const nlohmann::json& j, im::GroupMemberData* member) {
+    member->set_uid(j.value("uid", int64_t(0)));
+    member->set_username(j.value("username", ""));
+    member->set_nickname(j.value("nickname", ""));
+    member->set_avatar_url(j.value("avatar_url", ""));
+    member->set_role(j.value("role", 0));
+    member->set_join_time(j.value("join_time", ""));
+}
+
 // Extract uid from client metadata
 // Client should set "uid" and "token" metadata for authenticated requests
 static int64_t GetUidFromMetadata(grpc::ServerContext* context) {
@@ -68,7 +89,8 @@ grpc::Status ChatControlApiService::Sync(grpc::ServerContext* context,
     // Forward to ChatServer
     im::SyncUpReq up_req;
     up_req.set_uid(uid);
-    *up_req.mutable_last_seq_map() = request->last_seq_map();
+    up_req.set_last_inbox_seq(request->last_inbox_seq());
+    up_req.set_limit(request->limit());
 
     auto up_resp = ChatApiClient::getInstance()->Sync(up_req);
 
@@ -77,8 +99,12 @@ grpc::Status ChatControlApiService::Sync(grpc::ServerContext* context,
     for (const auto& env : up_resp.msgs()) {
         *response->add_msgs() = env;
     }
+    response->set_max_inbox_seq(up_resp.max_inbox_seq());
+    response->set_has_more(up_resp.has_more());
 
-    LOG_DEBUG("ChatControlApiService::Sync: uid={}, msgs={}", uid, response->msgs_size());
+    LOG_DEBUG("ChatControlApiService::Sync: uid={}, from_seq={}, msgs={}, max_seq={}, has_more={}",
+              uid, request->last_inbox_seq(), response->msgs_size(),
+              response->max_inbox_seq(), response->has_more());
     return grpc::Status::OK;
 }
 
@@ -327,5 +353,199 @@ grpc::Status ChatControlApiService::HandleContactRequest(grpc::ServerContext* co
 
     response->set_ok(ok);
     response->set_message(ok ? "success" : "handle contact request failed");
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::CreateGroup(grpc::ServerContext* context,
+                                                const im::CreateGroupReq* request,
+                                                im::CreateGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json req_json;
+    req_json["name"] = request->name();
+    req_json["avatar_url"] = request->avatar_url();
+    req_json["notice"] = request->notice();
+    req_json["description"] = request->description();
+    req_json["member_uids"] = nlohmann::json::array();
+    for (const auto member_uid : request->member_uids()) {
+        req_json["member_uids"].push_back(member_uid);
+    }
+
+    nlohmann::json result_json;
+    bool ok = UserServiceClient::getInstance()->CreateGroup(uid, req_json, result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "create group failed"));
+    if (ok && result_json.contains("group")) {
+        JsonToGroupData(result_json["group"], response->mutable_group());
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::UpdateGroup(grpc::ServerContext* context,
+                                                const im::UpdateGroupReq* request,
+                                                im::UpdateGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json req_json;
+    req_json["name"] = request->name();
+    req_json["avatar_url"] = request->avatar_url();
+    req_json["notice"] = request->notice();
+    req_json["description"] = request->description();
+
+    nlohmann::json result_json;
+    bool ok = UserServiceClient::getInstance()->UpdateGroup(uid, request->group_id(), req_json, result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "update group failed"));
+    if (ok && result_json.contains("group")) {
+        JsonToGroupData(result_json["group"], response->mutable_group());
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::DeleteGroup(grpc::ServerContext* context,
+                                                const im::DeleteGroupReq* request,
+                                                im::DeleteGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->DeleteGroup(uid, request->group_id(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "delete group failed"));
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::GetGroup(grpc::ServerContext* context,
+                                             const im::GetGroupReq* request,
+                                             im::GetGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->GetGroup(uid, request->group_id(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "get group failed"));
+    if (ok && result_json.contains("group")) {
+        JsonToGroupData(result_json["group"], response->mutable_group());
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::SearchGroups(grpc::ServerContext* context,
+                                                 const im::SearchGroupsReq* request,
+                                                 im::SearchGroupsResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->SearchGroups(request->keyword(), request->limit(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "search groups failed"));
+    if (ok && result_json.contains("groups") && result_json["groups"].is_array()) {
+        for (const auto& group : result_json["groups"]) {
+            JsonToGroupData(group, response->add_groups());
+        }
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::ListMyGroups(grpc::ServerContext* context,
+                                                 const im::ListMyGroupsReq* request,
+                                                 im::ListMyGroupsResp* response) {
+    (void)request;
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->ListMyGroups(uid, result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "list groups failed"));
+    if (ok && result_json.contains("groups") && result_json["groups"].is_array()) {
+        for (const auto& group : result_json["groups"]) {
+            JsonToGroupData(group, response->add_groups());
+        }
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::JoinGroup(grpc::ServerContext* context,
+                                              const im::JoinGroupReq* request,
+                                              im::JoinGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->JoinGroup(uid, request->group_id(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "join group failed"));
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::QuitGroup(grpc::ServerContext* context,
+                                              const im::QuitGroupReq* request,
+                                              im::QuitGroupResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->QuitGroup(uid, request->group_id(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "quit group failed"));
+    return grpc::Status::OK;
+}
+
+grpc::Status ChatControlApiService::GetGroupMembers(grpc::ServerContext* context,
+                                                    const im::GetGroupMembersReq* request,
+                                                    im::GetGroupMembersResp* response) {
+    int64_t uid = GetUidFromMetadata(context);
+    if (uid <= 0) {
+        response->set_ok(false);
+        response->set_message("unauthorized");
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, "missing uid");
+    }
+
+    nlohmann::json result_json;
+    const bool ok = UserServiceClient::getInstance()->GetGroupMembers(uid, request->group_id(), result_json);
+    response->set_ok(ok);
+    response->set_message(ok ? "success" : result_json.value("error", "get group members failed"));
+    if (ok && result_json.contains("members") && result_json["members"].is_array()) {
+        for (const auto& member : result_json["members"]) {
+            JsonToGroupMemberData(member, response->add_members());
+        }
+    }
     return grpc::Status::OK;
 }

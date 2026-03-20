@@ -249,6 +249,7 @@ void ChatSession::HandleAck(const im::AckReq& req) {
     ack_req.set_msg_id(req.msg_id());
     ack_req.set_type(req.type());
     ack_req.set_ts_ms(req.ts_ms());
+    ack_req.set_max_inbox_seq(req.max_inbox_seq());
     ChatApiClient::getInstance()->Ack(ack_req);
 }
 

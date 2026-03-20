@@ -15,7 +15,10 @@ find_package(redis++ CONFIG REQUIRED)
 
 set(GENERATED_DIR "${CMAKE_SOURCE_DIR}/proto_generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
-file(GLOB PROTO_FILES "${CMAKE_SOURCE_DIR}/*.proto")
+set(PROTO_FILES
+        "${CMAKE_SOURCE_DIR}/im.proto"
+        "${CMAKE_SOURCE_DIR}/../UserServer/userserver.proto"
+)
 
 foreach (PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
@@ -29,10 +32,10 @@ foreach (PROTO_FILE ${PROTO_FILES})
             COMMAND ${Protobuf_PROTOC_EXECUTABLE}
             ARGS
             --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
+            --proto_path=${CMAKE_SOURCE_DIR}/../UserServer
             --grpc_out=${GENERATED_DIR}
             --cpp_out=${GENERATED_DIR}
             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-            -I=${CMAKE_CURRENT_SOURCE_DIR}
             ${PROTO_FILE}
             DEPENDS ${PROTO_FILE}
             COMMENT "Generating gRPC code for ${PROTO_NAME}"
@@ -72,7 +75,11 @@ add_executable(ChatServer
         src/RedisConnPool.cpp
         src/RedisMgr.h
         src/RedisMgr.cpp
+        src/UserServiceClient.cpp
+        src/UserServiceClient.h
         main.cpp
+        src/ChannelPool.cpp
+        src/ChannelPool.h
 )
 
 target_link_libraries(ChatServer PUBLIC
@@ -96,3 +103,6 @@ configure_file(
         ${CMAKE_BINARY_DIR}/config.ini
         COPYONLY
 )
+
+enable_testing()
+add_subdirectory(test)

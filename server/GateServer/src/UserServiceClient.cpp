@@ -206,7 +206,7 @@ bool UserServiceClient::SearchUser(const std::string& keyword, nlohmann::json& u
                 users_array.push_back(user_json);
             }
 
-            users = users_array;
+            users["users"] = users_array;
             return true;
         } else {
             LOG_ERROR("Search users failed: {}", reply.error_msg());
@@ -305,7 +305,7 @@ bool UserServiceClient::GetContacts(uint64_t uid, nlohmann::json& out_json) {
                 obj["avatar_url"] = entry.avatar_url();
                 arr.push_back(obj);
             }
-            out_json = arr;
+            out_json["contacts"] = arr;
             return true;
         } else {
             LOG_ERROR("GetContacts failed: {}", reply.error_msg());
@@ -342,7 +342,7 @@ bool UserServiceClient::GetContactRequests(uint64_t uid, nlohmann::json& out_jso
                 obj["ts_ms"]         = req.ts_ms();
                 arr.push_back(obj);
             }
-            out_json = arr;
+            out_json["requests"] = arr;
             return true;
         } else {
             LOG_ERROR("GetContactRequests failed: {}", reply.error_msg());
@@ -352,4 +352,306 @@ bool UserServiceClient::GetContactRequests(uint64_t uid, nlohmann::json& out_jso
         LOG_ERROR("GetContactRequests RPC failed: {}", status.error_message());
         return false;
     }
+}
+
+bool UserServiceClient::CreateGroup(uint64_t owner_uid, const nlohmann::json& group_info, nlohmann::json& out_json) {
+    CreateGroupReq request;
+    CreateGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_owner_uid(owner_uid);
+    request.set_name(group_info.value("name", ""));
+    request.set_avatar_url(group_info.value("avatar_url", ""));
+    request.set_notice(group_info.value("notice", ""));
+    request.set_description(group_info.value("description", ""));
+    if (group_info.contains("member_uids") && group_info["member_uids"].is_array()) {
+        for (const auto& uid : group_info["member_uids"]) {
+            request.add_member_uids(uid.get<uint64_t>());
+        }
+    }
+
+    auto stub = _stub->getStub();
+    const Status status = stub->CreateGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    out_json["group"] = {
+        {"group_id", static_cast<int64_t>(reply.group().group_id())},
+        {"owner_uid", static_cast<int64_t>(reply.group().owner_uid())},
+        {"name", reply.group().name()},
+        {"avatar_url", reply.group().avatar_url()},
+        {"notice", reply.group().notice()},
+        {"description", reply.group().description()},
+        {"member_count", reply.group().member_count()},
+        {"create_time", reply.group().create_time()},
+        {"update_time", reply.group().update_time()}
+    };
+    return true;
+}
+
+bool UserServiceClient::UpdateGroup(uint64_t operator_uid, uint64_t group_id, const nlohmann::json& group_info, nlohmann::json& out_json) {
+    UpdateGroupReq request;
+    UpdateGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_operator_uid(operator_uid);
+    request.set_group_id(group_id);
+    request.set_name(group_info.value("name", ""));
+    request.set_avatar_url(group_info.value("avatar_url", ""));
+    request.set_notice(group_info.value("notice", ""));
+    request.set_description(group_info.value("description", ""));
+
+    auto stub = _stub->getStub();
+    const Status status = stub->UpdateGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    out_json["group"] = {
+        {"group_id", static_cast<int64_t>(reply.group().group_id())},
+        {"owner_uid", static_cast<int64_t>(reply.group().owner_uid())},
+        {"name", reply.group().name()},
+        {"avatar_url", reply.group().avatar_url()},
+        {"notice", reply.group().notice()},
+        {"description", reply.group().description()},
+        {"member_count", reply.group().member_count()},
+        {"create_time", reply.group().create_time()},
+        {"update_time", reply.group().update_time()}
+    };
+    return true;
+}
+
+bool UserServiceClient::DeleteGroup(uint64_t operator_uid, uint64_t group_id, nlohmann::json& out_json) {
+    DeleteGroupReq request;
+    DeleteGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_operator_uid(operator_uid);
+    request.set_group_id(group_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->DeleteGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+    out_json["success"] = true;
+    return true;
+}
+
+bool UserServiceClient::GetGroup(uint64_t requester_uid, uint64_t group_id, nlohmann::json& out_json) {
+    GetGroupReq request;
+    GetGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_requester_uid(requester_uid);
+    request.set_group_id(group_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->GetGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    out_json["group"] = {
+        {"group_id", static_cast<int64_t>(reply.group().group_id())},
+        {"owner_uid", static_cast<int64_t>(reply.group().owner_uid())},
+        {"name", reply.group().name()},
+        {"avatar_url", reply.group().avatar_url()},
+        {"notice", reply.group().notice()},
+        {"description", reply.group().description()},
+        {"member_count", reply.group().member_count()},
+        {"create_time", reply.group().create_time()},
+        {"update_time", reply.group().update_time()}
+    };
+    return true;
+}
+
+bool UserServiceClient::SearchGroups(const std::string& keyword, uint32_t limit, nlohmann::json& out_json) {
+    SearchGroupsReq request;
+    SearchGroupsResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_keyword(keyword);
+    request.set_limit(limit);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->SearchGroups(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    nlohmann::json groups = nlohmann::json::array();
+    for (const auto& group : reply.groups()) {
+        groups.push_back({
+            {"group_id", static_cast<int64_t>(group.group_id())},
+            {"owner_uid", static_cast<int64_t>(group.owner_uid())},
+            {"name", group.name()},
+            {"avatar_url", group.avatar_url()},
+            {"notice", group.notice()},
+            {"description", group.description()},
+            {"member_count", group.member_count()},
+            {"create_time", group.create_time()},
+            {"update_time", group.update_time()}
+        });
+    }
+    out_json["groups"] = groups;
+    return true;
+}
+
+bool UserServiceClient::ListMyGroups(uint64_t uid, nlohmann::json& out_json) {
+    ListMyGroupsReq request;
+    ListMyGroupsResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_uid(uid);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->ListMyGroups(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    nlohmann::json groups = nlohmann::json::array();
+    for (const auto& group : reply.groups()) {
+        groups.push_back({
+            {"group_id", static_cast<int64_t>(group.group_id())},
+            {"owner_uid", static_cast<int64_t>(group.owner_uid())},
+            {"name", group.name()},
+            {"avatar_url", group.avatar_url()},
+            {"notice", group.notice()},
+            {"description", group.description()},
+            {"member_count", group.member_count()},
+            {"create_time", group.create_time()},
+            {"update_time", group.update_time()}
+        });
+    }
+    out_json["groups"] = groups;
+    return true;
+}
+
+bool UserServiceClient::JoinGroup(uint64_t uid, uint64_t group_id, nlohmann::json& out_json) {
+    JoinGroupReq request;
+    JoinGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_uid(uid);
+    request.set_group_id(group_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->JoinGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+    out_json["success"] = true;
+    return true;
+}
+
+bool UserServiceClient::QuitGroup(uint64_t uid, uint64_t group_id, nlohmann::json& out_json) {
+    QuitGroupReq request;
+    QuitGroupResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_uid(uid);
+    request.set_group_id(group_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->QuitGroup(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+    out_json["success"] = true;
+    return true;
+}
+
+bool UserServiceClient::GetGroupMembers(uint64_t requester_uid, uint64_t group_id, nlohmann::json& out_json) {
+    GetGroupMembersReq request;
+    GetGroupMembersResp reply;
+    ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(3000));
+
+    request.set_requester_uid(requester_uid);
+    request.set_group_id(group_id);
+
+    auto stub = _stub->getStub();
+    const Status status = stub->GetGroupMembers(&context, request, &reply);
+    _stub->returnStub(std::move(stub));
+    if (!status.ok()) {
+        out_json["error"] = status.error_message();
+        return false;
+    }
+    if (!reply.success()) {
+        out_json["error"] = reply.error_msg();
+        return false;
+    }
+
+    nlohmann::json members = nlohmann::json::array();
+    for (const auto& member : reply.members()) {
+        members.push_back({
+            {"uid", static_cast<int64_t>(member.uid())},
+            {"username", member.username()},
+            {"nickname", member.nickname()},
+            {"avatar_url", member.avatar_url()},
+            {"role", static_cast<int>(member.role())},
+            {"join_time", member.join_time()}
+        });
+    }
+    out_json["members"] = members;
+    return true;
 }

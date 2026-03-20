@@ -7,6 +7,13 @@
 
 #include "RedisConnPool.h"
 #include "Singleton.h"
+#include "im.pb.h"
+
+struct SyncBatchResult {
+    std::vector<im::Envelope> messages;
+    uint64_t max_inbox_seq = 0;
+    bool has_more = false;
+};
 
 struct PresenceInfo {
     std::string gateway_id;
@@ -31,18 +38,16 @@ public:
     bool rpush(const std::string &key, const std::string &value);
     std::vector<std::string> lrange(const std::string &key, int64_t start, int64_t stop);
 
-    // Offline message queue operations (7 days TTL, ZSet + Hash)
-    // Hash: msg_content:{msg_id} -> message fields
-    // ZSet: offline_index:{receiver_uid} -> score=timestamp, member=msg_id
-    void addToOfflineQueue(int64_t to_uid, int64_t from_uid, const std::string& msg_id,
-                           int64_t ts_ms, const std::string& payload, uint64_t seq_id = 0);
-    std::vector<std::string> getOfflineMessages(int64_t to_uid);
+    // Offline inbox operations.
+    // user_inbox_seq:{uid} -> next inbox sequence
+    // offline_index:{uid} -> ZSET(score=inbox_seq, member=delivery_id)
+    // offline_msg:{delivery_id} -> serialized Envelope
+    uint64_t getNextInboxSeq(int64_t uid);
+    bool appendOfflineMessage(int64_t uid, const im::Envelope& env);
+    SyncBatchResult getOfflineMessagesBySeq(int64_t uid, uint64_t last_inbox_seq, uint32_t limit);
+    bool ackInboxMessages(int64_t uid, uint64_t max_inbox_seq);
 
-    // Seq generator for message ordering
-    // 单聊会话ID: min(uid1, uid2) + "_" + max(uid1, uid2)
-    // 群聊会话ID: "group_" + group_id
-    uint64_t getNextSeq(const std::string& conversation_id);
-    uint64_t getMaxSeq(const std::string& conversation_id);
+    uint64_t getAckedInboxSeq(int64_t uid);
 
     // Idempotency operations
     // Atomic check-and-set: returns existing value if key exists, otherwise sets new value and returns nullopt

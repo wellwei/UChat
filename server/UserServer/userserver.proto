@@ -138,6 +138,126 @@ message ContactRequest {
 }
 message GetContactRequestsResp { bool success = 1; string error_msg = 2; repeated ContactRequest requests = 3; }
 
+enum GroupMemberRole {
+    GROUP_MEMBER = 0;
+    GROUP_OWNER = 1;
+}
+
+message GroupInfo {
+    uint64 group_id = 1;
+    uint64 owner_uid = 2;
+    string name = 3;
+    string avatar_url = 4;
+    string notice = 5;
+    string description = 6;
+    uint32 member_count = 7;
+    string create_time = 8;
+    string update_time = 9;
+}
+
+message GroupMemberInfo {
+    uint64 uid = 1;
+    string username = 2;
+    string nickname = 3;
+    string avatar_url = 4;
+    GroupMemberRole role = 5;
+    string join_time = 6;
+}
+
+message CreateGroupReq {
+    uint64 owner_uid = 1;
+    string name = 2;
+    string avatar_url = 3;
+    string notice = 4;
+    string description = 5;
+    repeated uint64 member_uids = 6;
+}
+message CreateGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+    GroupInfo group = 3;
+}
+
+message UpdateGroupReq {
+    uint64 operator_uid = 1;
+    uint64 group_id = 2;
+    string name = 3;
+    string avatar_url = 4;
+    string notice = 5;
+    string description = 6;
+}
+message UpdateGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+    GroupInfo group = 3;
+}
+
+message DeleteGroupReq {
+    uint64 operator_uid = 1;
+    uint64 group_id = 2;
+}
+message DeleteGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+message GetGroupReq {
+    uint64 requester_uid = 1;
+    uint64 group_id = 2;
+}
+message GetGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+    GroupInfo group = 3;
+}
+
+message SearchGroupsReq {
+    string keyword = 1;
+    uint32 limit = 2;
+}
+message SearchGroupsResp {
+    bool success = 1;
+    string error_msg = 2;
+    repeated GroupInfo groups = 3;
+}
+
+message ListMyGroupsReq {
+    uint64 uid = 1;
+}
+message ListMyGroupsResp {
+    bool success = 1;
+    string error_msg = 2;
+    repeated GroupInfo groups = 3;
+}
+
+message JoinGroupReq {
+    uint64 uid = 1;
+    uint64 group_id = 2;
+}
+message JoinGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+message QuitGroupReq {
+    uint64 uid = 1;
+    uint64 group_id = 2;
+}
+message QuitGroupResp {
+    bool success = 1;
+    string error_msg = 2;
+}
+
+message GetGroupMembersReq {
+    uint64 requester_uid = 1;
+    uint64 group_id = 2;
+}
+message GetGroupMembersResp {
+    bool success = 1;
+    string error_msg = 2;
+    repeated GroupMemberInfo members = 3;
+}
+
 // 用户服务
 service UserService {
     // 验证用户凭证
@@ -163,4 +283,15 @@ service UserService {
     rpc HandleContactRequest(HandleContactRequestReq) returns (HandleContactRequestResp){}
     rpc GetContacts(GetContactsReq)                   returns (GetContactsResp)         {}
     rpc GetContactRequests(GetContactRequestsReq)     returns (GetContactRequestsResp)  {}
+
+    // M4: 群聊操作
+    rpc CreateGroup(CreateGroupReq) returns (CreateGroupResp) {}
+    rpc UpdateGroup(UpdateGroupReq) returns (UpdateGroupResp) {}
+    rpc DeleteGroup(DeleteGroupReq) returns (DeleteGroupResp) {}
+    rpc GetGroup(GetGroupReq) returns (GetGroupResp) {}
+    rpc SearchGroups(SearchGroupsReq) returns (SearchGroupsResp) {}
+    rpc ListMyGroups(ListMyGroupsReq) returns (ListMyGroupsResp) {}
+    rpc JoinGroup(JoinGroupReq) returns (JoinGroupResp) {}
+    rpc QuitGroup(QuitGroupReq) returns (QuitGroupResp) {}
+    rpc GetGroupMembers(GetGroupMembersReq) returns (GetGroupMembersResp) {}
 }

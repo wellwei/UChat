@@ -5,7 +5,6 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <chrono>
-#include <nlohmann/json.hpp>
 
 ChatApiService::ChatApiService(std::shared_ptr<DeliverApiClient> deliver_client)
     : deliver_client_(std::move(deliver_client)) {
@@ -19,6 +18,86 @@ grpc::ServerUnaryReactor* ChatApiService::SendMessage(
     auto* reactor = context->DefaultReactor();
     auto& redis = RedisMgr::getInstance();
 
+    if (request->group_id() > 0) {
+        std::vector<int64_t> member_uids;
+        if (!user_service_client_.GetGroupMemberUids(static_cast<uint64_t>(request->from_uid()),
+                                                     static_cast<uint64_t>(request->group_id()),
+                                                     member_uids)) {
+            response->set_ok(false);
+            response->set_reason("failed to load group members");
+            reactor->Finish(grpc::Status::OK);
+            return reactor;
+        }
+
+        std::string msg_id = boost::uuids::to_string(boost::uuids::random_generator()());
+        int64_t ts_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+
+        auto existing = redis.checkOrSetIdempotent(request->from_uid(), request->client_msg_id(), msg_id);
+        if (existing) {
+            response->set_ok(true);
+            response->set_msg_id(*existing);
+            reactor->Finish(grpc::Status::OK);
+            return reactor;
+        }
+
+        size_t persisted = 0;
+        for (const auto member_uid : member_uids) {
+            if (member_uid <= 0 || member_uid == request->from_uid()) {
+                continue;
+            }
+
+            const uint64_t seq_id = redis.getNextInboxSeq(member_uid);
+            if (seq_id == 0) {
+                LOG_WARN("ChatApiService::SendMessage group fanout seq alloc failed group_id={} to_uid={}",
+                         request->group_id(), member_uid);
+                continue;
+            }
+
+            im::Envelope env;
+            env.set_msg_id(msg_id);
+            env.set_client_msg_id(request->client_msg_id());
+            env.set_from_uid(request->from_uid());
+            env.set_to_uid(member_uid);
+            env.set_group_id(request->group_id());
+            env.set_ts_ms(ts_ms);
+            env.set_payload(request->payload());
+            env.set_trace_id(request->trace_id());
+            env.set_seq_id(seq_id);
+
+            if (!redis.appendOfflineMessage(member_uid, env)) {
+                LOG_WARN("ChatApiService::SendMessage group fanout persist failed group_id={} to_uid={}",
+                         request->group_id(), member_uid);
+                continue;
+            }
+            ++persisted;
+
+            auto presence = redis.getPresence(member_uid);
+            if (presence) {
+                im::DeliverToUserReq deliver_req;
+                deliver_req.set_to_uid(member_uid);
+                *deliver_req.mutable_env() = env;
+                deliver_req.set_expected_session_ver(presence->session_ver);
+                deliver_client_->DeliverToUser(presence->gateway_addr, deliver_req);
+            }
+        }
+
+        response->set_ok(persisted > 0);
+        response->set_msg_id(msg_id);
+        response->set_ts_ms(ts_ms);
+        if (persisted == 0) {
+            response->set_reason("no group recipients persisted");
+        }
+        reactor->Finish(grpc::Status::OK);
+        return reactor;
+    }
+    if (request->to_uid() <= 0) {
+        response->set_ok(false);
+        response->set_reason("invalid to_uid");
+        reactor->Finish(grpc::Status::OK);
+        return reactor;
+    }
+
     // 1. Generate server_msg_id (UUID) and timestamp
     std::string msg_id = boost::uuids::to_string(boost::uuids::random_generator()());
     int64_t ts_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -30,27 +109,39 @@ grpc::ServerUnaryReactor* ChatApiService::SendMessage(
     if (existing) {
         response->set_ok(true);
         response->set_msg_id(*existing);
-        LOG_DEBUG("ChatApiService::SendMessage: idempotent hit, from_uid={}, client_msg_id={}",
-                  request->from_uid(), request->client_msg_id());
+        // LOG_DEBUG("ChatApiService::SendMessage: idempotent hit, from_uid={}, client_msg_id={}",
+        //          request->from_uid(), request->client_msg_id());
         reactor->Finish(grpc::Status::OK);
         return reactor;
     }
 
-    // 3. Generate SeqID for conversation-level ordering
-    std::string conversation_id;
-    if (request->group_id() > 0) {
-        conversation_id = "group_" + std::to_string(request->group_id());
-    } else {
-        int64_t min_uid = std::min(request->from_uid(), request->to_uid());
-        int64_t max_uid = std::max(request->from_uid(), request->to_uid());
-        conversation_id = std::to_string(min_uid) + "_" + std::to_string(max_uid);
+    // 3. Generate receiver-scoped inbox seq.
+    const uint64_t seq_id = redis.getNextInboxSeq(request->to_uid());
+    if (seq_id == 0) {
+        response->set_ok(false);
+        response->set_reason("failed to allocate inbox seq");
+        reactor->Finish(grpc::Status::OK);
+        return reactor;
     }
-    uint64_t seq_id = redis.getNextSeq(conversation_id);
 
-    // 4. PERSIST FIRST: Always store to offline queue as persistent storage
-    // This is the source of truth for message delivery
-    redis.addToOfflineQueue(request->to_uid(), request->from_uid(),
-                             msg_id, ts_ms, request->payload(), seq_id);
+    // 4. PERSIST FIRST: write receiver-specific inbox copy.
+    im::Envelope env;
+    env.set_msg_id(msg_id);
+    env.set_client_msg_id(request->client_msg_id());
+    env.set_from_uid(request->from_uid());
+    env.set_to_uid(request->to_uid());
+    env.set_group_id(request->group_id());
+    env.set_ts_ms(ts_ms);
+    env.set_payload(request->payload());
+    env.set_trace_id(request->trace_id());
+    env.set_seq_id(seq_id);
+
+    if (!redis.appendOfflineMessage(request->to_uid(), env)) {
+        response->set_ok(false);
+        response->set_reason("failed to persist message");
+        reactor->Finish(grpc::Status::OK);
+        return reactor;
+    }
 
     // 5. Return success to sender immediately
     response->set_ok(true);
@@ -61,30 +152,18 @@ grpc::ServerUnaryReactor* ChatApiService::SendMessage(
     // 6. Fire-and-forget: If user is online, push to Gateway asynchronously
     auto presence = redis.getPresence(request->to_uid());
     if (presence) {
-        // Build envelope for delivery
-        im::Envelope env;
-        env.set_msg_id(msg_id);
-        env.set_client_msg_id(request->client_msg_id());
-        env.set_from_uid(request->from_uid());
-        env.set_to_uid(request->to_uid());
-        env.set_group_id(request->group_id());
-        env.set_ts_ms(ts_ms);
-        env.set_payload(request->payload());
-        env.set_trace_id(request->trace_id());
-        env.set_seq_id(seq_id);
-
         im::DeliverToUserReq deliver_req;
         deliver_req.set_to_uid(request->to_uid());
         *deliver_req.mutable_env() = env;
         deliver_req.set_expected_session_ver(presence->session_ver);
 
         // Fire-and-forget: async delivery, message already persisted
-        deliver_client_->DeliverToUserAsync(presence->gateway_addr, deliver_req);
+        deliver_client_->DeliverToUser(presence->gateway_addr, deliver_req);
 
         LOG_DEBUG("ChatApiService::SendMessage: async push to uid={} at gateway={}",
                   request->to_uid(), presence->gateway_addr);
     } else {
-        LOG_DEBUG("ChatApiService::SendMessage: to_uid={} is offline, msg stored", request->to_uid());
+        // LOG_DEBUG("ChatApiService::SendMessage: to_uid={} is offline, msg stored", request->to_uid());
     }
 
     return reactor;
@@ -96,9 +175,9 @@ grpc::ServerUnaryReactor* ChatApiService::Ack(
     im::AckUpResp* response) {
 
     auto* reactor = context->DefaultReactor();
+    auto& redis = RedisMgr::getInstance();
 
-    // ACK 处理（目前暂不需要额外操作）
-    response->set_ok(true);
+    response->set_ok(redis.ackInboxMessages(request->uid(), request->max_inbox_seq()));
     reactor->Finish(grpc::Status::OK);
     return reactor;
 }
@@ -111,54 +190,20 @@ grpc::ServerUnaryReactor* ChatApiService::Sync(
     auto* reactor = context->DefaultReactor();
     auto& redis = RedisMgr::getInstance();
 
-    // Get all offline messages for this user
-    auto json_msgs = redis.getOfflineMessages(request->uid());
+    const auto batch = redis.getOfflineMessagesBySeq(request->uid(),
+                                                     request->last_inbox_seq(),
+                                                     request->limit());
 
-    // Filter messages based on client's last_seq_map
-    const auto& last_seq_map = request->last_seq_map();
-
-    for (const auto& json_str : json_msgs) {
-        try {
-            auto j = nlohmann::json::parse(json_str);
-
-            // Get conversation_id for this message
-            int64_t from_uid = j.value("from_uid", int64_t(0));
-            int64_t to_uid = j.value("to_uid", int64_t(0));
-            uint64_t seq_id = j.value("seq_id", uint64_t(0));
-
-            // Determine conversation_id
-            std::string conversation_id;
-            int64_t min_uid = std::min(from_uid, to_uid);
-            int64_t max_uid = std::max(from_uid, to_uid);
-            conversation_id = std::to_string(min_uid) + "_" + std::to_string(max_uid);
-
-            // Check if client already has this message
-            auto it = last_seq_map.find(conversation_id);
-            if (it != last_seq_map.end() && seq_id <= it->second) {
-                // Client already has this message, skip
-                continue;
-            }
-
-            // Add message to response
-            im::Envelope* env = response->add_msgs();
-            env->set_msg_id(j.value("msg_id", ""));
-            env->set_client_msg_id(j.value("client_msg_id", ""));
-            env->set_from_uid(from_uid);
-            env->set_to_uid(to_uid);
-            env->set_group_id(j.value("group_id", int64_t(0)));
-            env->set_ts_ms(j.value("ts_ms", int64_t(0)));
-            env->set_payload(j.value("payload", ""));
-            env->set_trace_id(j.value("trace_id", ""));
-            if (seq_id > 0) {
-                env->set_seq_id(seq_id);
-            }
-        } catch (...) {
-            LOG_WARN("ChatApiService::Sync: failed to parse json for uid={}", request->uid());
-        }
+    for (const auto& env : batch.messages) {
+        *response->add_msgs() = env;
     }
 
     response->set_ok(true);
-    LOG_DEBUG("ChatApiService::Sync: uid={} returned {} messages", request->uid(), response->msgs_size());
+    response->set_max_inbox_seq(batch.max_inbox_seq);
+    response->set_has_more(batch.has_more);
+    LOG_DEBUG("ChatApiService::Sync: uid={} from_seq={} returned {} messages max_seq={} has_more={}",
+              request->uid(), request->last_inbox_seq(), response->msgs_size(),
+              batch.max_inbox_seq, batch.has_more);
 
     reactor->Finish(grpc::Status::OK);
     return reactor;

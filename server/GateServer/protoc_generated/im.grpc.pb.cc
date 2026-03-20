@@ -87,6 +87,15 @@ static const char* ChatControlApi_method_names[] = {
   "/im.ChatControlApi/GetContactRequests",
   "/im.ChatControlApi/SendContactRequest",
   "/im.ChatControlApi/HandleContactRequest",
+  "/im.ChatControlApi/CreateGroup",
+  "/im.ChatControlApi/UpdateGroup",
+  "/im.ChatControlApi/DeleteGroup",
+  "/im.ChatControlApi/GetGroup",
+  "/im.ChatControlApi/SearchGroups",
+  "/im.ChatControlApi/ListMyGroups",
+  "/im.ChatControlApi/JoinGroup",
+  "/im.ChatControlApi/QuitGroup",
+  "/im.ChatControlApi/GetGroupMembers",
 };
 
 std::unique_ptr< ChatControlApi::Stub> ChatControlApi::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -108,6 +117,15 @@ ChatControlApi::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& cha
   , rpcmethod_GetContactRequests_(ChatControlApi_method_names[9], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_SendContactRequest_(ChatControlApi_method_names[10], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_HandleContactRequest_(ChatControlApi_method_names[11], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateGroup_(ChatControlApi_method_names[12], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_UpdateGroup_(ChatControlApi_method_names[13], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteGroup_(ChatControlApi_method_names[14], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetGroup_(ChatControlApi_method_names[15], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_SearchGroups_(ChatControlApi_method_names[16], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ListMyGroups_(ChatControlApi_method_names[17], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_JoinGroup_(ChatControlApi_method_names[18], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_QuitGroup_(ChatControlApi_method_names[19], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetGroupMembers_(ChatControlApi_method_names[20], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status ChatControlApi::Stub::Sync(::grpc::ClientContext* context, const ::im::SyncReq& request, ::im::SyncResp* response) {
@@ -386,6 +404,213 @@ void ChatControlApi::Stub::async::HandleContactRequest(::grpc::ClientContext* co
   return result;
 }
 
+::grpc::Status ChatControlApi::Stub::CreateGroup(::grpc::ClientContext* context, const ::im::CreateGroupReq& request, ::im::CreateGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::CreateGroupReq, ::im::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::CreateGroup(::grpc::ClientContext* context, const ::im::CreateGroupReq* request, ::im::CreateGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::CreateGroupReq, ::im::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::CreateGroup(::grpc::ClientContext* context, const ::im::CreateGroupReq* request, ::im::CreateGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::CreateGroupResp>* ChatControlApi::Stub::PrepareAsyncCreateGroupRaw(::grpc::ClientContext* context, const ::im::CreateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::CreateGroupResp, ::im::CreateGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::CreateGroupResp>* ChatControlApi::Stub::AsyncCreateGroupRaw(::grpc::ClientContext* context, const ::im::CreateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncCreateGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::UpdateGroup(::grpc::ClientContext* context, const ::im::UpdateGroupReq& request, ::im::UpdateGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::UpdateGroupReq, ::im::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_UpdateGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::UpdateGroup(::grpc::ClientContext* context, const ::im::UpdateGroupReq* request, ::im::UpdateGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::UpdateGroupReq, ::im::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::UpdateGroup(::grpc::ClientContext* context, const ::im::UpdateGroupReq* request, ::im::UpdateGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::UpdateGroupResp>* ChatControlApi::Stub::PrepareAsyncUpdateGroupRaw(::grpc::ClientContext* context, const ::im::UpdateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::UpdateGroupResp, ::im::UpdateGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_UpdateGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::UpdateGroupResp>* ChatControlApi::Stub::AsyncUpdateGroupRaw(::grpc::ClientContext* context, const ::im::UpdateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncUpdateGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::DeleteGroup(::grpc::ClientContext* context, const ::im::DeleteGroupReq& request, ::im::DeleteGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::DeleteGroupReq, ::im::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_DeleteGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::DeleteGroup(::grpc::ClientContext* context, const ::im::DeleteGroupReq* request, ::im::DeleteGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::DeleteGroupReq, ::im::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::DeleteGroup(::grpc::ClientContext* context, const ::im::DeleteGroupReq* request, ::im::DeleteGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::DeleteGroupResp>* ChatControlApi::Stub::PrepareAsyncDeleteGroupRaw(::grpc::ClientContext* context, const ::im::DeleteGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::DeleteGroupResp, ::im::DeleteGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_DeleteGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::DeleteGroupResp>* ChatControlApi::Stub::AsyncDeleteGroupRaw(::grpc::ClientContext* context, const ::im::DeleteGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncDeleteGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::GetGroup(::grpc::ClientContext* context, const ::im::GetGroupReq& request, ::im::GetGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::GetGroupReq, ::im::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::GetGroup(::grpc::ClientContext* context, const ::im::GetGroupReq* request, ::im::GetGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::GetGroupReq, ::im::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::GetGroup(::grpc::ClientContext* context, const ::im::GetGroupReq* request, ::im::GetGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::GetGroupResp>* ChatControlApi::Stub::PrepareAsyncGetGroupRaw(::grpc::ClientContext* context, const ::im::GetGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::GetGroupResp, ::im::GetGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::GetGroupResp>* ChatControlApi::Stub::AsyncGetGroupRaw(::grpc::ClientContext* context, const ::im::GetGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::SearchGroups(::grpc::ClientContext* context, const ::im::SearchGroupsReq& request, ::im::SearchGroupsResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::SearchGroupsReq, ::im::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_SearchGroups_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::SearchGroups(::grpc::ClientContext* context, const ::im::SearchGroupsReq* request, ::im::SearchGroupsResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::SearchGroupsReq, ::im::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SearchGroups_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::SearchGroups(::grpc::ClientContext* context, const ::im::SearchGroupsReq* request, ::im::SearchGroupsResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SearchGroups_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::SearchGroupsResp>* ChatControlApi::Stub::PrepareAsyncSearchGroupsRaw(::grpc::ClientContext* context, const ::im::SearchGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::SearchGroupsResp, ::im::SearchGroupsReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_SearchGroups_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::SearchGroupsResp>* ChatControlApi::Stub::AsyncSearchGroupsRaw(::grpc::ClientContext* context, const ::im::SearchGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncSearchGroupsRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::ListMyGroups(::grpc::ClientContext* context, const ::im::ListMyGroupsReq& request, ::im::ListMyGroupsResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::ListMyGroupsReq, ::im::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_ListMyGroups_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::ListMyGroups(::grpc::ClientContext* context, const ::im::ListMyGroupsReq* request, ::im::ListMyGroupsResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::ListMyGroupsReq, ::im::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ListMyGroups_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::ListMyGroups(::grpc::ClientContext* context, const ::im::ListMyGroupsReq* request, ::im::ListMyGroupsResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ListMyGroups_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::ListMyGroupsResp>* ChatControlApi::Stub::PrepareAsyncListMyGroupsRaw(::grpc::ClientContext* context, const ::im::ListMyGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::ListMyGroupsResp, ::im::ListMyGroupsReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_ListMyGroups_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::ListMyGroupsResp>* ChatControlApi::Stub::AsyncListMyGroupsRaw(::grpc::ClientContext* context, const ::im::ListMyGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncListMyGroupsRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::JoinGroup(::grpc::ClientContext* context, const ::im::JoinGroupReq& request, ::im::JoinGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::JoinGroupReq, ::im::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_JoinGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::JoinGroup(::grpc::ClientContext* context, const ::im::JoinGroupReq* request, ::im::JoinGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::JoinGroupReq, ::im::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_JoinGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::JoinGroup(::grpc::ClientContext* context, const ::im::JoinGroupReq* request, ::im::JoinGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_JoinGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::JoinGroupResp>* ChatControlApi::Stub::PrepareAsyncJoinGroupRaw(::grpc::ClientContext* context, const ::im::JoinGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::JoinGroupResp, ::im::JoinGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_JoinGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::JoinGroupResp>* ChatControlApi::Stub::AsyncJoinGroupRaw(::grpc::ClientContext* context, const ::im::JoinGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncJoinGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::QuitGroup(::grpc::ClientContext* context, const ::im::QuitGroupReq& request, ::im::QuitGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::QuitGroupReq, ::im::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_QuitGroup_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::QuitGroup(::grpc::ClientContext* context, const ::im::QuitGroupReq* request, ::im::QuitGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::QuitGroupReq, ::im::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_QuitGroup_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::QuitGroup(::grpc::ClientContext* context, const ::im::QuitGroupReq* request, ::im::QuitGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_QuitGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::QuitGroupResp>* ChatControlApi::Stub::PrepareAsyncQuitGroupRaw(::grpc::ClientContext* context, const ::im::QuitGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::QuitGroupResp, ::im::QuitGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_QuitGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::QuitGroupResp>* ChatControlApi::Stub::AsyncQuitGroupRaw(::grpc::ClientContext* context, const ::im::QuitGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncQuitGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status ChatControlApi::Stub::GetGroupMembers(::grpc::ClientContext* context, const ::im::GetGroupMembersReq& request, ::im::GetGroupMembersResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::im::GetGroupMembersReq, ::im::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetGroupMembers_, context, request, response);
+}
+
+void ChatControlApi::Stub::async::GetGroupMembers(::grpc::ClientContext* context, const ::im::GetGroupMembersReq* request, ::im::GetGroupMembersResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::im::GetGroupMembersReq, ::im::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroupMembers_, context, request, response, std::move(f));
+}
+
+void ChatControlApi::Stub::async::GetGroupMembers(::grpc::ClientContext* context, const ::im::GetGroupMembersReq* request, ::im::GetGroupMembersResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroupMembers_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::GetGroupMembersResp>* ChatControlApi::Stub::PrepareAsyncGetGroupMembersRaw(::grpc::ClientContext* context, const ::im::GetGroupMembersReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::im::GetGroupMembersResp, ::im::GetGroupMembersReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetGroupMembers_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::im::GetGroupMembersResp>* ChatControlApi::Stub::AsyncGetGroupMembersRaw(::grpc::ClientContext* context, const ::im::GetGroupMembersReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetGroupMembersRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 ChatControlApi::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       ChatControlApi_method_names[0],
@@ -507,6 +732,96 @@ ChatControlApi::Service::Service() {
              ::im::HandleContactReqResp* resp) {
                return service->HandleContactRequest(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[12],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::CreateGroupReq, ::im::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::CreateGroupReq* req,
+             ::im::CreateGroupResp* resp) {
+               return service->CreateGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[13],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::UpdateGroupReq, ::im::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::UpdateGroupReq* req,
+             ::im::UpdateGroupResp* resp) {
+               return service->UpdateGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[14],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::DeleteGroupReq, ::im::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::DeleteGroupReq* req,
+             ::im::DeleteGroupResp* resp) {
+               return service->DeleteGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[15],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::GetGroupReq, ::im::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::GetGroupReq* req,
+             ::im::GetGroupResp* resp) {
+               return service->GetGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[16],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::SearchGroupsReq, ::im::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::SearchGroupsReq* req,
+             ::im::SearchGroupsResp* resp) {
+               return service->SearchGroups(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[17],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::ListMyGroupsReq, ::im::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::ListMyGroupsReq* req,
+             ::im::ListMyGroupsResp* resp) {
+               return service->ListMyGroups(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[18],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::JoinGroupReq, ::im::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::JoinGroupReq* req,
+             ::im::JoinGroupResp* resp) {
+               return service->JoinGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[19],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::QuitGroupReq, ::im::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::QuitGroupReq* req,
+             ::im::QuitGroupResp* resp) {
+               return service->QuitGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      ChatControlApi_method_names[20],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< ChatControlApi::Service, ::im::GetGroupMembersReq, ::im::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](ChatControlApi::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::im::GetGroupMembersReq* req,
+             ::im::GetGroupMembersResp* resp) {
+               return service->GetGroupMembers(ctx, req, resp);
+             }, this)));
 }
 
 ChatControlApi::Service::~Service() {
@@ -590,6 +905,69 @@ ChatControlApi::Service::~Service() {
 }
 
 ::grpc::Status ChatControlApi::Service::HandleContactRequest(::grpc::ServerContext* context, const ::im::HandleContactReqReq* request, ::im::HandleContactReqResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::CreateGroup(::grpc::ServerContext* context, const ::im::CreateGroupReq* request, ::im::CreateGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::UpdateGroup(::grpc::ServerContext* context, const ::im::UpdateGroupReq* request, ::im::UpdateGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::DeleteGroup(::grpc::ServerContext* context, const ::im::DeleteGroupReq* request, ::im::DeleteGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::GetGroup(::grpc::ServerContext* context, const ::im::GetGroupReq* request, ::im::GetGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::SearchGroups(::grpc::ServerContext* context, const ::im::SearchGroupsReq* request, ::im::SearchGroupsResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::ListMyGroups(::grpc::ServerContext* context, const ::im::ListMyGroupsReq* request, ::im::ListMyGroupsResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::JoinGroup(::grpc::ServerContext* context, const ::im::JoinGroupReq* request, ::im::JoinGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::QuitGroup(::grpc::ServerContext* context, const ::im::QuitGroupReq* request, ::im::QuitGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status ChatControlApi::Service::GetGroupMembers(::grpc::ServerContext* context, const ::im::GetGroupMembersReq* request, ::im::GetGroupMembersResp* response) {
   (void) context;
   (void) request;
   (void) response;

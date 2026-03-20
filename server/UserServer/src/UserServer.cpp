@@ -300,6 +300,164 @@ grpc::Status UserServer::GetContactRequests(grpc::ServerContext* context,
     return grpc::Status::OK;
 }
 
+// ========== M4: 群聊操作 ==========
+
+grpc::Status UserServer::CreateGroup(grpc::ServerContext* context,
+                                     const CreateGroupReq* request,
+                                     CreateGroupResp* response) {
+    LOG_INFO("Received CreateGroup owner_uid={} name={}", request->owner_uid(), request->name());
+
+    if (request->owner_uid() == 0 || request->name().empty()) {
+        response->set_success(false);
+        response->set_error_msg("owner_uid 或群名称无效");
+        return grpc::Status::OK;
+    }
+
+    GroupInfo group;
+    if (MysqlMgr::getInstance()->createGroup(*request, group)) {
+        response->set_success(true);
+        *response->mutable_group() = group;
+    } else {
+        response->set_success(false);
+        response->set_error_msg("创建群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::UpdateGroup(grpc::ServerContext* context,
+                                     const UpdateGroupReq* request,
+                                     UpdateGroupResp* response) {
+    LOG_INFO("Received UpdateGroup group_id={} operator_uid={}", request->group_id(), request->operator_uid());
+
+    GroupInfo group;
+    if (MysqlMgr::getInstance()->updateGroup(*request, group)) {
+        response->set_success(true);
+        *response->mutable_group() = group;
+    } else {
+        response->set_success(false);
+        response->set_error_msg("更新群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::DeleteGroup(grpc::ServerContext* context,
+                                     const DeleteGroupReq* request,
+                                     DeleteGroupResp* response) {
+    LOG_INFO("Received DeleteGroup group_id={} operator_uid={}", request->group_id(), request->operator_uid());
+
+    response->set_success(MysqlMgr::getInstance()->deleteGroup(request->operator_uid(), request->group_id()));
+    if (!response->success()) {
+        response->set_error_msg("删除群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::GetGroup(grpc::ServerContext* context,
+                                  const GetGroupReq* request,
+                                  GetGroupResp* response) {
+    LOG_INFO("Received GetGroup group_id={} requester_uid={}", request->group_id(), request->requester_uid());
+
+    GroupInfo group;
+    if (MysqlMgr::getInstance()->getGroup(request->requester_uid(), request->group_id(), group)) {
+        response->set_success(true);
+        *response->mutable_group() = group;
+    } else {
+        response->set_success(false);
+        response->set_error_msg("群聊不存在");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::SearchGroups(grpc::ServerContext* context,
+                                      const SearchGroupsReq* request,
+                                      SearchGroupsResp* response) {
+    LOG_INFO("Received SearchGroups keyword={}", request->keyword());
+
+    if (request->keyword().empty()) {
+        response->set_success(false);
+        response->set_error_msg("关键词不能为空");
+        return grpc::Status::OK;
+    }
+
+    std::vector<GroupInfo> groups;
+    if (MysqlMgr::getInstance()->searchGroups(request->keyword(), request->limit(), groups)) {
+        response->set_success(true);
+        for (const auto& group : groups) {
+            *response->add_groups() = group;
+        }
+    } else {
+        response->set_success(false);
+        response->set_error_msg("搜索群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::ListMyGroups(grpc::ServerContext* context,
+                                      const ListMyGroupsReq* request,
+                                      ListMyGroupsResp* response) {
+    LOG_INFO("Received ListMyGroups uid={}", request->uid());
+
+    if (request->uid() == 0) {
+        response->set_success(false);
+        response->set_error_msg("uid 无效");
+        return grpc::Status::OK;
+    }
+
+    std::vector<GroupInfo> groups;
+    if (MysqlMgr::getInstance()->listMyGroups(request->uid(), groups)) {
+        response->set_success(true);
+        for (const auto& group : groups) {
+            *response->add_groups() = group;
+        }
+    } else {
+        response->set_success(false);
+        response->set_error_msg("获取群列表失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::JoinGroup(grpc::ServerContext* context,
+                                   const JoinGroupReq* request,
+                                   JoinGroupResp* response) {
+    LOG_INFO("Received JoinGroup uid={} group_id={}", request->uid(), request->group_id());
+
+    response->set_success(MysqlMgr::getInstance()->joinGroup(request->uid(), request->group_id()));
+    if (!response->success()) {
+        response->set_error_msg("加入群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::QuitGroup(grpc::ServerContext* context,
+                                   const QuitGroupReq* request,
+                                   QuitGroupResp* response) {
+    LOG_INFO("Received QuitGroup uid={} group_id={}", request->uid(), request->group_id());
+
+    response->set_success(MysqlMgr::getInstance()->quitGroup(request->uid(), request->group_id()));
+    if (!response->success()) {
+        response->set_error_msg("退出群聊失败");
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status UserServer::GetGroupMembers(grpc::ServerContext* context,
+                                         const GetGroupMembersReq* request,
+                                         GetGroupMembersResp* response) {
+    LOG_INFO("Received GetGroupMembers requester_uid={} group_id={}", request->requester_uid(), request->group_id());
+
+    std::vector<GroupMemberInfo> members;
+    if (MysqlMgr::getInstance()->getGroupMembers(request->requester_uid(), request->group_id(), members)) {
+        response->set_success(true);
+        for (const auto& member : members) {
+            *response->add_members() = member;
+        }
+    } else {
+        response->set_success(false);
+        response->set_error_msg("获取群成员失败");
+    }
+    return grpc::Status::OK;
+}
+
 void UserServer::start() {
     auto config = *ConfigMgr::getInstance();
     std::string server_address = config["UserServer"]["host"] + ":" + config["UserServer"]["port"];

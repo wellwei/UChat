@@ -27,9 +27,21 @@ public:
     bool handleContactRequest(uint64_t request_id, uint64_t handler_uid, bool accept, uint64_t& out_from_uid);
     bool getContacts(uint64_t uid, std::vector<ContactEntry>& contacts);
     bool getContactRequests(uint64_t uid, std::vector<ContactRequest>& requests);
+
+    // M4: 群聊操作
+    bool createGroup(const CreateGroupReq& request, GroupInfo& group);
+    bool updateGroup(const UpdateGroupReq& request, GroupInfo& group);
+    bool deleteGroup(uint64_t operator_uid, uint64_t group_id);
+    bool getGroup(uint64_t requester_uid, uint64_t group_id, GroupInfo& group);
+    bool searchGroups(const std::string& keyword, uint32_t limit, std::vector<GroupInfo>& groups);
+    bool listMyGroups(uint64_t uid, std::vector<GroupInfo>& groups);
+    bool joinGroup(uint64_t uid, uint64_t group_id);
+    bool quitGroup(uint64_t uid, uint64_t group_id);
+    bool getGroupMembers(uint64_t requester_uid, uint64_t group_id, std::vector<GroupMemberInfo>& members);
     
 private:
     MysqlMgr();
     static bool fromMysqlResult(const sql::ResultSet* rs, UserProfile& user_profile);
+    static bool fromGroupResult(const sql::ResultSet* rs, GroupInfo& group);
     std::shared_ptr<MysqlConnPool> conn_pool;
 };

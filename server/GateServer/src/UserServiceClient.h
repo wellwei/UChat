@@ -38,6 +38,17 @@ public:
     bool GetContacts(uint64_t uid, nlohmann::json& out_json);
     bool GetContactRequests(uint64_t uid, nlohmann::json& out_json);
 
+    // M4: 群聊操作
+    bool CreateGroup(uint64_t owner_uid, const nlohmann::json& group_info, nlohmann::json& out_json);
+    bool UpdateGroup(uint64_t operator_uid, uint64_t group_id, const nlohmann::json& group_info, nlohmann::json& out_json);
+    bool DeleteGroup(uint64_t operator_uid, uint64_t group_id, nlohmann::json& out_json);
+    bool GetGroup(uint64_t requester_uid, uint64_t group_id, nlohmann::json& out_json);
+    bool SearchGroups(const std::string& keyword, uint32_t limit, nlohmann::json& out_json);
+    bool ListMyGroups(uint64_t uid, nlohmann::json& out_json);
+    bool JoinGroup(uint64_t uid, uint64_t group_id, nlohmann::json& out_json);
+    bool QuitGroup(uint64_t uid, uint64_t group_id, nlohmann::json& out_json);
+    bool GetGroupMembers(uint64_t requester_uid, uint64_t group_id, nlohmann::json& out_json);
+
 private:
     UserServiceClient();
 

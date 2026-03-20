@@ -31,6 +31,15 @@ static const char* UserService_method_names[] = {
   "/UserService/HandleContactRequest",
   "/UserService/GetContacts",
   "/UserService/GetContactRequests",
+  "/UserService/CreateGroup",
+  "/UserService/UpdateGroup",
+  "/UserService/DeleteGroup",
+  "/UserService/GetGroup",
+  "/UserService/SearchGroups",
+  "/UserService/ListMyGroups",
+  "/UserService/JoinGroup",
+  "/UserService/QuitGroup",
+  "/UserService/GetGroupMembers",
 };
 
 std::unique_ptr< UserService::Stub> UserService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -50,6 +59,15 @@ UserService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channe
   , rpcmethod_HandleContactRequest_(UserService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_GetContacts_(UserService_method_names[8], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_GetContactRequests_(UserService_method_names[9], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateGroup_(UserService_method_names[10], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_UpdateGroup_(UserService_method_names[11], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteGroup_(UserService_method_names[12], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetGroup_(UserService_method_names[13], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_SearchGroups_(UserService_method_names[14], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ListMyGroups_(UserService_method_names[15], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_JoinGroup_(UserService_method_names[16], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_QuitGroup_(UserService_method_names[17], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetGroupMembers_(UserService_method_names[18], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status UserService::Stub::VerifyCredentials(::grpc::ClientContext* context, const ::VerifyCredentialsRequest& request, ::VerifyCredentialsResponse* response) {
@@ -282,6 +300,213 @@ void UserService::Stub::async::GetContactRequests(::grpc::ClientContext* context
   return result;
 }
 
+::grpc::Status UserService::Stub::CreateGroup(::grpc::ClientContext* context, const ::CreateGroupReq& request, ::CreateGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::CreateGroupReq, ::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateGroup_, context, request, response);
+}
+
+void UserService::Stub::async::CreateGroup(::grpc::ClientContext* context, const ::CreateGroupReq* request, ::CreateGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::CreateGroupReq, ::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::CreateGroup(::grpc::ClientContext* context, const ::CreateGroupReq* request, ::CreateGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::CreateGroupResp>* UserService::Stub::PrepareAsyncCreateGroupRaw(::grpc::ClientContext* context, const ::CreateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::CreateGroupResp, ::CreateGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::CreateGroupResp>* UserService::Stub::AsyncCreateGroupRaw(::grpc::ClientContext* context, const ::CreateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncCreateGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::UpdateGroup(::grpc::ClientContext* context, const ::UpdateGroupReq& request, ::UpdateGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::UpdateGroupReq, ::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_UpdateGroup_, context, request, response);
+}
+
+void UserService::Stub::async::UpdateGroup(::grpc::ClientContext* context, const ::UpdateGroupReq* request, ::UpdateGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::UpdateGroupReq, ::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::UpdateGroup(::grpc::ClientContext* context, const ::UpdateGroupReq* request, ::UpdateGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::UpdateGroupResp>* UserService::Stub::PrepareAsyncUpdateGroupRaw(::grpc::ClientContext* context, const ::UpdateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::UpdateGroupResp, ::UpdateGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_UpdateGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::UpdateGroupResp>* UserService::Stub::AsyncUpdateGroupRaw(::grpc::ClientContext* context, const ::UpdateGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncUpdateGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::DeleteGroup(::grpc::ClientContext* context, const ::DeleteGroupReq& request, ::DeleteGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::DeleteGroupReq, ::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_DeleteGroup_, context, request, response);
+}
+
+void UserService::Stub::async::DeleteGroup(::grpc::ClientContext* context, const ::DeleteGroupReq* request, ::DeleteGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::DeleteGroupReq, ::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::DeleteGroup(::grpc::ClientContext* context, const ::DeleteGroupReq* request, ::DeleteGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::DeleteGroupResp>* UserService::Stub::PrepareAsyncDeleteGroupRaw(::grpc::ClientContext* context, const ::DeleteGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::DeleteGroupResp, ::DeleteGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_DeleteGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::DeleteGroupResp>* UserService::Stub::AsyncDeleteGroupRaw(::grpc::ClientContext* context, const ::DeleteGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncDeleteGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::GetGroup(::grpc::ClientContext* context, const ::GetGroupReq& request, ::GetGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::GetGroupReq, ::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetGroup_, context, request, response);
+}
+
+void UserService::Stub::async::GetGroup(::grpc::ClientContext* context, const ::GetGroupReq* request, ::GetGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::GetGroupReq, ::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::GetGroup(::grpc::ClientContext* context, const ::GetGroupReq* request, ::GetGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::GetGroupResp>* UserService::Stub::PrepareAsyncGetGroupRaw(::grpc::ClientContext* context, const ::GetGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::GetGroupResp, ::GetGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::GetGroupResp>* UserService::Stub::AsyncGetGroupRaw(::grpc::ClientContext* context, const ::GetGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::SearchGroups(::grpc::ClientContext* context, const ::SearchGroupsReq& request, ::SearchGroupsResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::SearchGroupsReq, ::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_SearchGroups_, context, request, response);
+}
+
+void UserService::Stub::async::SearchGroups(::grpc::ClientContext* context, const ::SearchGroupsReq* request, ::SearchGroupsResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::SearchGroupsReq, ::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SearchGroups_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::SearchGroups(::grpc::ClientContext* context, const ::SearchGroupsReq* request, ::SearchGroupsResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SearchGroups_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::SearchGroupsResp>* UserService::Stub::PrepareAsyncSearchGroupsRaw(::grpc::ClientContext* context, const ::SearchGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::SearchGroupsResp, ::SearchGroupsReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_SearchGroups_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::SearchGroupsResp>* UserService::Stub::AsyncSearchGroupsRaw(::grpc::ClientContext* context, const ::SearchGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncSearchGroupsRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::ListMyGroups(::grpc::ClientContext* context, const ::ListMyGroupsReq& request, ::ListMyGroupsResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::ListMyGroupsReq, ::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_ListMyGroups_, context, request, response);
+}
+
+void UserService::Stub::async::ListMyGroups(::grpc::ClientContext* context, const ::ListMyGroupsReq* request, ::ListMyGroupsResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::ListMyGroupsReq, ::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ListMyGroups_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::ListMyGroups(::grpc::ClientContext* context, const ::ListMyGroupsReq* request, ::ListMyGroupsResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ListMyGroups_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::ListMyGroupsResp>* UserService::Stub::PrepareAsyncListMyGroupsRaw(::grpc::ClientContext* context, const ::ListMyGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::ListMyGroupsResp, ::ListMyGroupsReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_ListMyGroups_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::ListMyGroupsResp>* UserService::Stub::AsyncListMyGroupsRaw(::grpc::ClientContext* context, const ::ListMyGroupsReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncListMyGroupsRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::JoinGroup(::grpc::ClientContext* context, const ::JoinGroupReq& request, ::JoinGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::JoinGroupReq, ::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_JoinGroup_, context, request, response);
+}
+
+void UserService::Stub::async::JoinGroup(::grpc::ClientContext* context, const ::JoinGroupReq* request, ::JoinGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::JoinGroupReq, ::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_JoinGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::JoinGroup(::grpc::ClientContext* context, const ::JoinGroupReq* request, ::JoinGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_JoinGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::JoinGroupResp>* UserService::Stub::PrepareAsyncJoinGroupRaw(::grpc::ClientContext* context, const ::JoinGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::JoinGroupResp, ::JoinGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_JoinGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::JoinGroupResp>* UserService::Stub::AsyncJoinGroupRaw(::grpc::ClientContext* context, const ::JoinGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncJoinGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::QuitGroup(::grpc::ClientContext* context, const ::QuitGroupReq& request, ::QuitGroupResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::QuitGroupReq, ::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_QuitGroup_, context, request, response);
+}
+
+void UserService::Stub::async::QuitGroup(::grpc::ClientContext* context, const ::QuitGroupReq* request, ::QuitGroupResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::QuitGroupReq, ::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_QuitGroup_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::QuitGroup(::grpc::ClientContext* context, const ::QuitGroupReq* request, ::QuitGroupResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_QuitGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::QuitGroupResp>* UserService::Stub::PrepareAsyncQuitGroupRaw(::grpc::ClientContext* context, const ::QuitGroupReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::QuitGroupResp, ::QuitGroupReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_QuitGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::QuitGroupResp>* UserService::Stub::AsyncQuitGroupRaw(::grpc::ClientContext* context, const ::QuitGroupReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncQuitGroupRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status UserService::Stub::GetGroupMembers(::grpc::ClientContext* context, const ::GetGroupMembersReq& request, ::GetGroupMembersResp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::GetGroupMembersReq, ::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetGroupMembers_, context, request, response);
+}
+
+void UserService::Stub::async::GetGroupMembers(::grpc::ClientContext* context, const ::GetGroupMembersReq* request, ::GetGroupMembersResp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::GetGroupMembersReq, ::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroupMembers_, context, request, response, std::move(f));
+}
+
+void UserService::Stub::async::GetGroupMembers(::grpc::ClientContext* context, const ::GetGroupMembersReq* request, ::GetGroupMembersResp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetGroupMembers_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::GetGroupMembersResp>* UserService::Stub::PrepareAsyncGetGroupMembersRaw(::grpc::ClientContext* context, const ::GetGroupMembersReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::GetGroupMembersResp, ::GetGroupMembersReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetGroupMembers_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::GetGroupMembersResp>* UserService::Stub::AsyncGetGroupMembersRaw(::grpc::ClientContext* context, const ::GetGroupMembersReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetGroupMembersRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 UserService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       UserService_method_names[0],
@@ -383,6 +608,96 @@ UserService::Service::Service() {
              ::GetContactRequestsResp* resp) {
                return service->GetContactRequests(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[10],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::CreateGroupReq, ::CreateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::CreateGroupReq* req,
+             ::CreateGroupResp* resp) {
+               return service->CreateGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[11],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::UpdateGroupReq, ::UpdateGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::UpdateGroupReq* req,
+             ::UpdateGroupResp* resp) {
+               return service->UpdateGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[12],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::DeleteGroupReq, ::DeleteGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::DeleteGroupReq* req,
+             ::DeleteGroupResp* resp) {
+               return service->DeleteGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[13],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::GetGroupReq, ::GetGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::GetGroupReq* req,
+             ::GetGroupResp* resp) {
+               return service->GetGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[14],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::SearchGroupsReq, ::SearchGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::SearchGroupsReq* req,
+             ::SearchGroupsResp* resp) {
+               return service->SearchGroups(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[15],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::ListMyGroupsReq, ::ListMyGroupsResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::ListMyGroupsReq* req,
+             ::ListMyGroupsResp* resp) {
+               return service->ListMyGroups(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[16],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::JoinGroupReq, ::JoinGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::JoinGroupReq* req,
+             ::JoinGroupResp* resp) {
+               return service->JoinGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[17],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::QuitGroupReq, ::QuitGroupResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::QuitGroupReq* req,
+             ::QuitGroupResp* resp) {
+               return service->QuitGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      UserService_method_names[18],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< UserService::Service, ::GetGroupMembersReq, ::GetGroupMembersResp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](UserService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::GetGroupMembersReq* req,
+             ::GetGroupMembersResp* resp) {
+               return service->GetGroupMembers(ctx, req, resp);
+             }, this)));
 }
 
 UserService::Service::~Service() {
@@ -452,6 +767,69 @@ UserService::Service::~Service() {
 }
 
 ::grpc::Status UserService::Service::GetContactRequests(::grpc::ServerContext* context, const ::GetContactRequestsReq* request, ::GetContactRequestsResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::CreateGroup(::grpc::ServerContext* context, const ::CreateGroupReq* request, ::CreateGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::UpdateGroup(::grpc::ServerContext* context, const ::UpdateGroupReq* request, ::UpdateGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::DeleteGroup(::grpc::ServerContext* context, const ::DeleteGroupReq* request, ::DeleteGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::GetGroup(::grpc::ServerContext* context, const ::GetGroupReq* request, ::GetGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::SearchGroups(::grpc::ServerContext* context, const ::SearchGroupsReq* request, ::SearchGroupsResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::ListMyGroups(::grpc::ServerContext* context, const ::ListMyGroupsReq* request, ::ListMyGroupsResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::JoinGroup(::grpc::ServerContext* context, const ::JoinGroupReq* request, ::JoinGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::QuitGroup(::grpc::ServerContext* context, const ::QuitGroupReq* request, ::QuitGroupResp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status UserService::Service::GetGroupMembers(::grpc::ServerContext* context, const ::GetGroupMembersReq* request, ::GetGroupMembersResp* response) {
   (void) context;
   (void) request;
   (void) response;

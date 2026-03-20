@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(GateServer)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx)
-
-project(GateServer)
+if(NOT DEFINED CMAKE_PREFIX_PATH OR "${CMAKE_PREFIX_PATH}" STREQUAL "")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx")
+        set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-osx")
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake-build-debug/vcpkg_installed/x64-osx")
+        set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake-build-debug/vcpkg_installed/x64-osx")
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -27,13 +31,12 @@ foreach (PROTO_FILE ${PROTO_FILES})
             ${GENERATED_DIR}/${PROTO_NAME}.pb.h
             ${GENERATED_DIR}/${PROTO_NAME}.grpc.pb.cc
             ${GENERATED_DIR}/${PROTO_NAME}.grpc.pb.h
-            COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+            COMMAND $<TARGET_FILE:protobuf::protoc>
             ARGS
             --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
             --grpc_out=${GENERATED_DIR}
             --cpp_out=${GENERATED_DIR}
             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-            -I=${CMAKE_CURRENT_SOURCE_DIR}
             ${PROTO_FILE}
             DEPENDS ${PROTO_FILE}
             COMMENT "Generating gRPC code for ${PROTO_NAME}"

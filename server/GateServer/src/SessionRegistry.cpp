@@ -42,6 +42,7 @@ std::vector<std::pair<int64_t, int64_t> > SessionRegistry::GetAllSessionsPair() 
     std::vector<std::pair<int64_t, int64_t> > sessions_pairs;
 
     for (const auto&[fst, snd] : sessions_) {
+        std::lock_guard<std::shared_mutex> lock(mu_);
         sessions_pairs.emplace_back(fst, snd->GetSessionVer());
     }
 
